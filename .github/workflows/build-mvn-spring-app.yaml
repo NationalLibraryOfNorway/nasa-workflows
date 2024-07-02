@@ -63,13 +63,10 @@ jobs:
             { "id": "jitpack", "url": "https://jitpack.io" },
             { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
           ]'
-          servers: '[
-            { "id": "github", "username": "x-access-token", "password": "${{ secrets.READER_TOKEN }}" }
-          ]'
           output_file: settings.xml
       - name: Download toolchain file
         run: |
-          curl https://raw.githubusercontent.com/navikt/dok-workflows/main/resources/toolchains.xml --output toolchains.xml
+          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set maven artifact version
         run: |
           mvn versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"

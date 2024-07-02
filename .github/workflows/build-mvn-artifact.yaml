@@ -28,9 +28,6 @@ jobs:
             { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
             { "id": "confluent", "url": "https://packages.confluent.io/maven/" }
           ]'
-          servers: '[
-            { "id": "github", "username": "x-access-token", "password": "${{ secrets.READER_TOKEN }}" }
-          ]'
           output_file: settings.xml
       - name: Set up JDK${{ inputs.java-version }} and cache dependencies
         uses: actions/setup-java@v4
