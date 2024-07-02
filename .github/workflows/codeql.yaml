@@ -1,0 +1,77 @@
+name: "CodeQL"
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        description: Java version to build with
+        default: '21'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'java' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # If you wish to specify custom queries, you can do so here or in a config file.
+          # By default, queries listed here will override any specified in a config file.
+          # Prefix the list here with "+" to use these queries and those in the config file.
+
+          # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
+          queries: security-and-quality
+      - name: Create m2-settings
+        uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d # v22
+        with:
+          # TODO: add github and artifactory repositories
+          # { "id": "github", "url": "https://maven.pkg.github.com/NationalLibraryOfNorway/maven-release", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
+          # { "id": "artifactory", "url": "https://atifactory.nb.no/maven-release", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
+          #
+          repositories: '[
+            { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
+            { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
+            { "id": "jitpack", "url": "https://jitpack.io" },
+            { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
+          ]'
+#          servers: '[
+#            { "id": "github", "username": "x-access-token", "password": "${{ secrets.READER_TOKEN }}" }
+#          ]'
+          output_file: settings.xml
+
+      - name: Download toolchain file
+        run: |
+          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
+
+      - name: Build
+        run: |
+          echo "Run, Build Application using script"
+          mvn --batch-mode -s settings.xml --global-toolchains toolchains.xml compile
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
