@@ -22,15 +22,18 @@ jobs:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
+      - name: Download toolchain file
+        run: |
+          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set release tag
         run: |
-          export MAVEN_VERSION=`mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
+          export MAVEN_VERSION=`mvn --global-toolchains toolchains.xml -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
           export RELEASE_VERSION=${MAVEN_VERSION}-${{ github.run_number }}
           echo "Setting Release tag $RELEASE_VERSION"
-          mvn versions:set versions:update-child-modules -DnewVersion="${RELEASE_VERSION}"
-          mvn versions:commit
+          mvn --global-toolchains toolchains.xml versions:set versions:update-child-modules -DnewVersion="${RELEASE_VERSION}"
+          mvn --global-toolchains toolchains.xml versions:commit
       - name: Build with Maven
         run: |
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          mvn -Ddependency-check.skip=true -DskipTests  clean deploy
-          if [ $DOCKER_POM ]; then mvn -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
+          mvn --global-toolchains toolchains.xml -Ddependency-check.skip=true -DskipTests  clean deploy
+          if [ $DOCKER_POM ]; then mvn --global-toolchains toolchains.xml -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi

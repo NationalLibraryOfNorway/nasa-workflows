@@ -1,0 +1,32 @@
+name: mvn build and test
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        description: Java version to build with
+        default: '21'
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK${{ inputs.java-version }} and cache dependencies
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Download toolchain file
+        run: |
+          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
+      - name: Build with Maven
+        run: |
+          mvn --global-toolchains toolchains.xml clean install
+      - name: Update dependency graph
+        uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
