@@ -19,6 +19,9 @@ on:
             required: true
         NVD_REPO:
             required: true
+    env:
+        PROXY_HOST_NB:
+            required: true
 
     outputs:
       build-tag:
@@ -87,8 +90,8 @@ jobs:
             { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
           ]'
           proxies: '[
-            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ secrets.PROXY_NB }}", "port": "3128" },
-            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ secrets.PROXY_NB }}", "port": "3128" }
+            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ env.PROXY_HOST_NB }}", "port": "3128" },
+            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ env.PROXY_HOST_NB }}", "port": "3128" }
           ]'
           output_file: settings.xml
       - name: Download toolchain file
