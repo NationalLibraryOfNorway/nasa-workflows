@@ -93,7 +93,6 @@ jobs:
           output_file: settings.xml
       - name: Download toolchain file
         run: |
-          sudo apt-get update && sudo a
           curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set maven artifact version
         run: |
