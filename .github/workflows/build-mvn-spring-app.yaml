@@ -19,9 +19,6 @@ on:
             required: true
         NVD_REPO:
             required: true
-    env:
-        PROXY_HOST_NB:
-            required: true
 
     outputs:
       build-tag:
@@ -33,6 +30,10 @@ on:
         type: string
         description: Java version to build with
         default: '21'
+
+    env:
+      PROXY_HOST_NB:
+        required: true
 
 jobs:
   build-app:
