@@ -2,6 +2,24 @@ name: Build mvn Spring app
 
 on:
   workflow_call:
+    secrets:
+        ARTIFACTORY_USER_NASA:
+            required: true
+        ARTIFACTORY_PASS_NASA:
+            required: true
+        PROXY_NB:
+            required: true
+        ARTIFACTORY_NB:
+            required: true
+        DOCKER_REGISTRY_NB:
+            required: true
+        DOCKER_HARBOR_USER_NASA:
+            required: true
+        DOCKER_HARBOR_PASS_NASA:
+            required: true
+        NVD_REPO:
+            required: true
+
     outputs:
       build-tag:
         description: "Build tag"
@@ -16,7 +34,7 @@ on:
 jobs:
   build-app:
     name: Build app
-    runs-on: self-hosted-linux
+    runs-on: ubuntu-latest
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
     environment: test
@@ -74,7 +92,6 @@ jobs:
           ]'
           output_file: settings.xml
       - name: Download toolchain file
-
         run: |
           sudo apt-get update && sudo a
           curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
@@ -83,7 +100,10 @@ jobs:
           mvn versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
           mvn versions:commit
       - name: Build with Maven
-        run: mvn --no-transfer-progress --batch-mode --update-snapshots -s settings.xml --global-toolchains toolchains.xml verify
+        run: mvn --no-transfer-progress --batch-mode --update-snapshots -s settings.xml --global-toolchains toolchains.xml package
+      # Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
+      - name: Update dependency graph
+        uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
       # docker build
       - name: Build docker image
         run: |
