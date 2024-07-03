@@ -31,10 +31,6 @@ on:
         description: Java version to build with
         default: '21'
 
-    env:
-      PROXY_HOST_NB:
-        required: true
-
 jobs:
   build-app:
     name: Build app
