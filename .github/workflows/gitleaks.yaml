@@ -1,15 +1,20 @@
-name: gitleaks
+name: Gitleaks
+
 on:
   workflow_call:
+    secrets:
+      GITLEAKS_LICENSE:
+        required: true
 jobs:
-  scan:
-    name: gitleaks
+  Gitleaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - name: Scan with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}} # Only required for nal accounts.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Only required for nal accounts.
