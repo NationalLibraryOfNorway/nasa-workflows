@@ -16,9 +16,10 @@ on:
 jobs:
   build-app:
     name: Build app
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-linux
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
+    environment: test
     steps:
       # prebuild
       - name: Checkout code
@@ -57,25 +58,34 @@ jobs:
       - name: Create m2-settings
         uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d # v22
         with:
+          servers: '[
+            { "id": "snapshots", "username": "${{ secrets.ARTIFACTORY_USER_NASA }}", "password": "${{ secrets.ARTIFACTORY_PASS_NASA }}" },
+            { "id": "releases", "username": "${{ secrets.ARTIFACTORY_USER_NASA }}", "password": "${{ secrets.ARTIFACTORY_PASS_NASA }}" }
+          ]'
           repositories: '[
             { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
             { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
             { "id": "jitpack", "url": "https://jitpack.io" },
             { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
           ]'
+          proxies: '[
+            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ secrets.PROXY_NB }}", "port": "3128" },
+            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ secrets.PROXY_NB }}", "port": "3128" }
+          ]'
           output_file: settings.xml
       - name: Download toolchain file
+
         run: |
-  
+          sudo apt-get update && sudo a
           curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set maven artifact version
         run: |
           mvn versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
           mvn versions:commit
       - name: Build with Maven
-        run: mvn --batch-mode --update-snapshots -s settings.xml --global-toolchains toolchains.xml verify
+        run: mvn --no-transfer-progress --batch-mode --update-snapshots -s settings.xml --global-toolchains toolchains.xml verify
       # docker build
       - name: Build docker image
         run: |
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ $DOCKER_POM ]; then mvn -s settings.xml --global-toolchains toolchains.xml -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
+          if [ $DOCKER_POM ]; then mvn --no-transfer-progress -s settings.xml --global-toolchains toolchains.xml -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
