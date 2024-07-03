@@ -37,7 +37,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
-    environment: test
     steps:
       # prebuild
       - name: Checkout code
