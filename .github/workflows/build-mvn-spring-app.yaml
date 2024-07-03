@@ -86,8 +86,8 @@ jobs:
             { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
           ]'
           proxies: '[
-            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ var.PROXY_HOST_NB }}", "port": "3128", "nonProxyHosts": "localhost|127.0.0.1|docker"},
-            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ var.PROXY_HOST_NB }}", "port": "3128" "nonProxyHosts": "localhost|127.0.0.1|docker"}
+            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ env.PROXY_HOST_NB }}", "port": "3128", "nonProxyHosts": "localhost|127.0.0.1|docker"},
+            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ env.PROXY_HOST_NB }}", "port": "3128" "nonProxyHosts": "localhost|127.0.0.1|docker"}
           ]'
           output_file: settings.xml
       - name: Download toolchain file
