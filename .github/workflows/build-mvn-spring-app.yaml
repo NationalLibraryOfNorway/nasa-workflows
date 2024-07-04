@@ -35,6 +35,12 @@ jobs:
   build-app:
     name: Build app
     runs-on: self-hosted-linux
+    services:
+        docker:
+          image: docker:dind
+          options: --privileged
+          ports:
+            - 2375:2375
     container:
       image: harbor.nb.no/githubworkflows/github-workflow-maven-non-root:3.8.8-jdk-21-slim-helm3
       options: --user root
