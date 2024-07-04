@@ -30,8 +30,11 @@ on:
         type: string
         description: Java version to build with
         default: '21'
-
-
+      maven-image:
+        required: false
+        type: string
+        description: Maven image to build with
+        default: 'harbor.nb.no/nationallibraryofnorway/docker-maven-non-root:3.8.8-jdk-21-slim-helm3'
 
 jobs:
   build-app:
@@ -44,7 +47,7 @@ jobs:
           ports:
             - 2375:2375
     container:
-      image: ${MAVEN_IMAGE}
+      image: ${{ inputs.maven-image }}
       options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
