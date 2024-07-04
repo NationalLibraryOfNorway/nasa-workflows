@@ -49,7 +49,7 @@ jobs:
           ports:
             - 2375:2375
     container:
-      image: ${{ env.MAVEN_IMAGE }}
+      image: $MAVEN_IMAGE
       options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
