@@ -100,7 +100,7 @@ jobs:
       - name: Download toolchain file
         run: |
           export http_proxy=http://${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; export https_proxy=https://${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; sudo apt update && sudo apt install -y curl
-          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
+          proxy=${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; curl -v https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set maven artifact version
         run: |
           mvn --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
