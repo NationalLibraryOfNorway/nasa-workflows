@@ -142,7 +142,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           settings-file: settings.xml
-          snapshot-include-file-name: false
+          maven-args: --no-transfer-progress
 
      # docker build
       - name: Build docker image
