@@ -23,7 +23,7 @@ on:
     outputs:
       build-tag:
         description: "Build tag"
-        value: ${{ jobs.build-app.outputs.build-tag }}
+        value: ${{ jobs.build-app.outputs.release-version }}
     inputs:
       java-version:
         required: false
@@ -37,16 +37,18 @@ jobs:
     runs-on: self-hosted-linux
     container:
       image: harbor.nb.no/githubworkflows/github-workflow-maven-non-root:3.8.8-jdk-21-slim-helm3
-#      options: --user root
+      options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
     steps:
+
       # prebuild
       - name: Checkout code
         uses: actions/checkout@v4
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
+
       - name: set env
         run: |
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
@@ -56,39 +58,42 @@ jobs:
           echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
+
       - name: Generate ~/.m2/repository cache key
         id: m2-cache-key
         run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+
       - name: Cache ~/.m2/repository
         id: cache-m2-repository
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ steps.m2-cache-key.outputs.keyname }}
-      # build tag
-      - name: Generate build tag
-        id: generate-build-tag
+
+      - name: Set release tag
+        id: build-tag
         run: |
-          base_number=$(git describe --abbrev=0 --tags | awk -F \. {'$1++;print $1'})
-          echo "Build base_number=$base_number"
-          if ! [[ $base_number =~ ^[0-9]+$ ]]; then
-            build_tag=$((echo "1" && git rev-parse --short HEAD) | paste -s -d'-'); 
-          else 
-            build_tag=$((echo $base_number && git rev-parse --short HEAD) | paste -s -d'-'); 
-          fi
-          echo "Generated build-tag=$build_tag"
-          echo "build-tag=$(echo $build_tag)" >> $GITHUB_OUTPUT
+          export MAVEN_VERSION=`mvn --global-toolchains toolchains.xml -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
+          export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
+          echo "Setting Build tag $BUILD_TAG"
+          echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
+#          mvn versions:set versions:update-child-modules -DnewVersion="${BUILD_TAG}"
+#         mvn versions:commit
+
       # maven build
       - name: Set maven artifact version
         run: |
           mvn --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
           mvn --no-transfer-progress versions:commit
+
       - name: Build with Maven # --global-toolchains toolchains.xml
         run: mvn --no-transfer-progress --batch-mode --update-snapshots -s settings.xml  package
+
       # Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
       - name: Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
-      # docker build
+
+     # docker build
       - name: Build docker image
         run: | # --global-toolchains toolchains.xml
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
