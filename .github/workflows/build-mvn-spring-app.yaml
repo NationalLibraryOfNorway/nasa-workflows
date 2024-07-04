@@ -114,4 +114,4 @@ jobs:
       - name: Build docker image
         run: |
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ $DOCKER_POM ]; then mvn --no-transfer-progress settings.xml --global-toolchains toolchains.xml -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
+          if [ $DOCKER_POM ]; then mvn --no-transfer-progress -s settings.xml --global-toolchains toolchains.xml -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
