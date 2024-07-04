@@ -35,7 +35,7 @@ jobs:
   build-app:
     name: Build app
     runs-on: self-hosted-linux
-    container: harbor.nb.no/nationallibraryofnorway/docker-maven-non-root:3.8.8-jdk-21-slim-helm3
+    container: harbor.nb.no/githubworkflows/github-workflow-maven-non-root:3.8.8-jdk-21-slim-helm3
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
     steps:
@@ -52,11 +52,8 @@ jobs:
           echo "DOCKER_HARBOR_USER_NASA=${{ secrets.DOCKER_HARBOR_USER_NASA }}" >> $GITHUB_ENV
           echo "DOCKER_HARBOR_PASS_NASA=${{ secrets.DOCKER_HARBOR_PASS_NASA }}" >> $GITHUB_ENV
           echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
-      - name: Set up JDK${{ inputs.java-version }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: 'temurin'
+          echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
       - name: Generate ~/.m2/repository cache key
         id: m2-cache-key
         run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
@@ -80,28 +77,6 @@ jobs:
           echo "Generated build-tag=$build_tag"
           echo "build-tag=$(echo $build_tag)" >> $GITHUB_OUTPUT
       # maven build
-      - name: Create m2-settings
-        uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d # v22
-        with:
-          servers: '[
-            { "id": "snapshots", "username": "${{ secrets.ARTIFACTORY_USER_NASA }}", "password": "${{ secrets.ARTIFACTORY_PASS_NASA }}" },
-            { "id": "releases", "username": "${{ secrets.ARTIFACTORY_USER_NASA }}", "password": "${{ secrets.ARTIFACTORY_PASS_NASA }}" }
-          ]'
-          repositories: '[
-            { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
-            { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
-            { "id": "jitpack", "url": "https://jitpack.io" },
-            { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
-          ]'
-          proxies: '[
-            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"},
-            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"}
-          ]'
-          output_file: settings.xml
-#      - name: Download toolchain file
-#        run: |
-#          export http_proxy=http://${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; export https_proxy=https://${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; sudo apt update && sudo apt install -y curl
-#          proxy=${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; curl -v https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set maven artifact version
         run: |
           mvn --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
