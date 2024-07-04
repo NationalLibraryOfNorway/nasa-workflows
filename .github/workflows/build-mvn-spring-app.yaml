@@ -102,7 +102,7 @@ jobs:
       - name: Generate build tag
         id: generate-build-tag
         run: |
-          export MAVEN_VERSION=`mvn --batch-mode --no-transfer-progress -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
+          export MAVEN_VERSION=`mvn -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
           export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
           echo "Setting Build tag $BUILD_TAG"
           echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
