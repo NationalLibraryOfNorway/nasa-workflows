@@ -31,10 +31,25 @@ on:
         description: Java version to build with
         default: '21'
       maven-image:
-        required: false
+        required: true
         type: string
         description: Maven image to build with
-        #default: 'harbor.nb.no/nationallibraryofnorway/docker-maven-non-root:3.8.8-jdk-21-slim-helm3'
+      dev-replicas:
+        required: false
+        type: number
+        default: 1
+      prod-replicas:
+        required: false
+        type: number
+        default: 1
+      service-name:
+        required: true
+        type: string
+        description: Name of the service
+      deploy-e2e:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-app:
@@ -125,7 +140,9 @@ jobs:
       - name: Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@v4.1.0
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           settings-file: settings.xml
+          snapshot-include-file-name: false
 
      # docker build
       - name: Build docker image
