@@ -34,7 +34,7 @@ on:
 jobs:
   build-app:
     name: Build app
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-linux
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
     steps:
@@ -92,13 +92,14 @@ jobs:
             { "id": "jitpack", "url": "https://jitpack.io" },
             { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
           ]'
-#         proxies: '[
-#            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"},
-#            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"}
-#          ]'
+          proxies: '[
+            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"},
+            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"}
+          ]'
           output_file: settings.xml
       - name: Download toolchain file
         run: |
+          export http_proxy=http://${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; export https_proxy=https://${{ vars.PROXY_HOST_NB }}:${{ vars.PROXY_PORT_NB }} ; apt update && apt install -y curl
           curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
       - name: Set maven artifact version
         run: |
