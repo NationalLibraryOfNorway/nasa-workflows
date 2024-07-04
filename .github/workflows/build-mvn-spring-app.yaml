@@ -35,6 +35,7 @@ jobs:
   build-app:
     name: Build app
     runs-on: self-hosted-linux
+    container: harbor.nb.no/nationallibraryofnorway/docker-maven-non-root:3.8.8-jdk-21-slim-helm3
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
     steps:
