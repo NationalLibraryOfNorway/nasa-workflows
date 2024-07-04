@@ -37,7 +37,7 @@ jobs:
     runs-on: self-hosted-linux
     container:
       image: harbor.nb.no/githubworkflows/github-workflow-maven-non-root:3.8.8-jdk-21-slim-helm3
-      options: --user root
+#      options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
     steps:
