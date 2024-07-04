@@ -31,12 +31,7 @@ on:
         description: Java version to build with
         default: '21'
 
-    env:
-      MAVEN_IMAGE: ${{ env.MAVEN_IMAGE }}
-      DEV_REPLICAS: ${{ env.DEV_REPLICAS }}
-      PROD_REPLICAS: ${{ env.PROD_REPLICAS }}
-      SERVICE_NAME:  ${{ env.SERVICE_NAME }}
-      DEPLOY_E2E: ${{ env.DEPLOY_E2E }}
+
 
 jobs:
   build-app:
