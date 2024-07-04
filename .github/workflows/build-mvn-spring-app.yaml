@@ -70,10 +70,33 @@ jobs:
           path: ~/.m2/repository
           key: ${{ steps.m2-cache-key.outputs.keyname }}
 
+      - name: Create m2-settings
+        uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d # v22
+        with:
+          servers: '[
+            { "id": "snapshots", "username": "${{ secrets.ARTIFACTORY_USER_NASA }}", "password": "${{ secrets.ARTIFACTORY_PASS_NASA }}" },
+            { "id": "releases", "username": "${{ secrets.ARTIFACTORY_USER_NASA }}", "password": "${{ secrets.ARTIFACTORY_PASS_NASA }}" }
+          ]'
+          repositories: '[
+            { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
+            { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
+            { "id": "jitpack", "url": "https://jitpack.io" },
+            { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
+          ]'
+          proxies: '[
+            { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"},
+            { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ vars.PROXY_HOST_NB }}", "port": "${{ vars.PROXY_PORT_NB }}", "nonProxyHosts": "localhost|127.0.0.1|docker"}
+          ]'
+          output_file: settings.xml
+
+      - name: Download toolchain file
+        run: |
+          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
+
       - name: Set release tag
         id: build-tag
         run: |
-          export MAVEN_VERSION=`mvn --global-toolchains toolchains.xml -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
+          export MAVEN_VERSION=`mvn -s settings.xml --global-toolchains toolchains.xml -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
           export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
           echo "Setting Build tag $BUILD_TAG"
           echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
@@ -83,11 +106,11 @@ jobs:
       # maven build
       - name: Set maven artifact version
         run: |
-          mvn --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
-          mvn --no-transfer-progress versions:commit
+          mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
+          mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress versions:commit
 
       - name: Build with Maven # --global-toolchains toolchains.xml
-        run: mvn --no-transfer-progress --batch-mode --update-snapshots -s settings.xml  package
+        run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots  package
 
       # Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
       - name: Update dependency graph
@@ -95,6 +118,6 @@ jobs:
 
      # docker build
       - name: Build docker image
-        run: | # --global-toolchains toolchains.xml
+        run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ $DOCKER_POM ]; then mvn --no-transfer-progress -s settings.xml  -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
+          if [ $DOCKER_POM ]; then mvn --no-transfer-progress -s settings.xml --global-toolchains toolchains.xml  -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
