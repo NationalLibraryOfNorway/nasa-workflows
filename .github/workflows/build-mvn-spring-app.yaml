@@ -34,7 +34,7 @@ on:
         required: false
         type: string
         description: Maven image to build with
-        default: 'harbor.nb.no/nationallibraryofnorway/docker-maven-non-root:3.8.8-jdk-21-slim-helm3'
+        #default: 'harbor.nb.no/nationallibraryofnorway/docker-maven-non-root:3.8.8-jdk-21-slim-helm3'
 
 jobs:
   build-app:
