@@ -42,7 +42,7 @@ jobs:
           ports:
             - 2375:2375
     container:
-      image: harbor.nb.no/githubworkflows/github-workflow-maven-non-root:3.8.8-jdk-21-slim-helm3
+      image: ${{ env.MAVEN_IMAGE }}
       options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
