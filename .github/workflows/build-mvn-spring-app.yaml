@@ -52,7 +52,69 @@ on:
         default: false
 
 jobs:
+  test:
+    if: github.ref != 'refs/heads/main' || github.ref != 'refs/heads/master'
+    name: Run
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: ${{ inputs.maven-image }}
+      options: --user root
+    env:
+      TZ: "Europe/Oslo"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
+      - name: set env
+        run: |
+          echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
+
+      - name: Generate ~/.m2/repository cache key
+        id: m2-cache-key
+        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+
+      - name: Cache ~/.m2/repository
+        id: cache-m2-repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.m2-cache-key.outputs.keyname }}
+
+      - name: Create m2-settings
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
+        with:
+          artifactory-host: ${{ secrets.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ secrets.ARTIFACTORY_USER_NASA }}
+          artifactory-pass-nasa: ${{ secrets.ARTIFACTORY_PASS_NASA }}
+          proxy-host-nb: ${{ vars.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ vars.PROXY_PORT_NB }}
+
+      - name: Maven test
+        run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots verify
+
+          # This step will use the test-reporter action to publish test results in the workflow run
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: JUnit Tests
+          path: ./**/TEST-*.xml
+          reporter: java-junit
+          fail-on-error: true
+          fail-on-empty: true
+
   build-app:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Build app
     runs-on: self-hosted-linux
     services:
