@@ -101,7 +101,11 @@ jobs:
       - name: Maven test
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots verify
 
-          # This step will use the test-reporter action to publish test results in the workflow run
+      - name: Fix dubious ownership in git-repo
+        shell: bash
+        run: |
+          git config --global --add safe.directory '*'
+
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
         if: always()
