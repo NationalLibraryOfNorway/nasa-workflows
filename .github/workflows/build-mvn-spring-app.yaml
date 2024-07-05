@@ -53,8 +53,7 @@ on:
 
 jobs:
   test:
-    if: github.ref != 'refs/heads/main' || github.ref != 'refs/heads/master'
-    name: Run
+    name: Run test
     runs-on: self-hosted-linux
     services:
       docker:
@@ -114,6 +113,7 @@ jobs:
           fail-on-empty: true
 
   build-app:
+    needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Build app
     runs-on: self-hosted-linux
