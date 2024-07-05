@@ -25,11 +25,6 @@ on:
         description: "Build tag"
         value: ${{ jobs.build-app.outputs.release-version }}
     inputs:
-      java-version:
-        required: false
-        type: string
-        description: Java version to build with
-        default: '21'
       maven-image:
         required: true
         type: string
