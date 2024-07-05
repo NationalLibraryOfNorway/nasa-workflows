@@ -71,7 +71,7 @@ jobs:
       - name: Build
         run: |
           echo "Run, Build Application using script"
-          mvn --batch-mode -s settings.xml --global-toolchains toolchains.xml compile
+          mvn --batch-mode -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress compile
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
