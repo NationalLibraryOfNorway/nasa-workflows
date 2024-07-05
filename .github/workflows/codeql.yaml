@@ -44,27 +44,16 @@ jobs:
 
           # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
           queries: security-and-quality
-      - name: Create m2-settings
-        uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d # v22
-        with:
-          # TODO: add github and artifactory repositories
-          # { "id": "github", "url": "https://maven.pkg.github.com/NationalLibraryOfNorway/maven-release", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
-          # { "id": "artifactory", "url": "https://atifactory.nb.no/maven-release", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
-          #
-          repositories: '[
-            { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
-            { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
-            { "id": "jitpack", "url": "https://jitpack.io" },
-            { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" }
-          ]'
-#          servers: '[
-#            { "id": "github", "username": "x-access-token", "password": "${{ secrets.READER_TOKEN }}" }
-#          ]'
-          output_file: settings.xml
 
-      - name: Download toolchain file
-        run: |
-          curl https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
+      # Setup Maven settings
+      - name: Create m2-settings
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
+        with:
+          artifactory-host: ${{ secrets.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ secrets.ARTIFACTORY_USER_NASA }}
+          artifactory-pass-nasa: ${{ secrets.ARTIFACTORY_PASS_NASA }}
+          proxy-host-nb: ${{ vars.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ vars.PROXY_PORT_NB }}
 
       - name: Build
         run: |
