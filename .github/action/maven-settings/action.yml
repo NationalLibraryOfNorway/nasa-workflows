@@ -1,0 +1,45 @@
+name: 'Maven Settings'
+description: 'Maven settings for pipeline'
+inputs:
+  artifactory-host:
+    description: 'Artifactory host'
+    required: true
+  artifactory-user-nasa:
+    description: 'Artifactory user for NASA'
+    required: true
+  artifactory-pass-nasa:
+    description: 'Artifactory password for NASA'
+    required: true
+  proxy-host-nb:
+    description: 'Proxy host for NB'
+    required: true
+  proxy-port-nb:
+    description: 'Proxy port for NB'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Create maven .m2 settings
+      uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d
+      with:
+        servers: '[
+          { "id": "snapshots", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" },
+          { "id": "releases", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" }
+        ]'
+        repositories: '[
+          { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
+          { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
+          { "id": "jitpack", "url": "https://jitpack.io" },
+          { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" },
+          { "id": "snapshots", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-snapshot-local", "releases": { "enabled": "false" }, "snapshots": { "enabled": "true" } },
+          { "id": "releases", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-release-local", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } }
+        ]'
+        proxies: '[
+          { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "localhost|127.0.0.1|docker"},
+          { "id": "nb-proxy-https", "active": "true", "protocol": "https", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "localhost|127.0.0.1|docker"}
+        ]'
+        output_file: 'settings.xml'
+    - name: Download toolchain file
+      shell: bash
+      run: |
+        curl -s https://raw.githubusercontent.com/NationalLibraryOfNorway/nasa-workflows/main/resources/toolchains.xml --output toolchains.xml
