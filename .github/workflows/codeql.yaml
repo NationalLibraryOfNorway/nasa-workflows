@@ -2,17 +2,41 @@ name: "CodeQL"
 
 on:
   workflow_call:
+    secrets:
+      ARTIFACTORY_USER_NASA:
+        required: true
+      ARTIFACTORY_PASS_NASA:
+        required: true
+      PROXY_NB:
+        required: true
+      ARTIFACTORY_NB:
+        required: true
+      NVD_REPO:
+        required: true
     inputs:
       java-version:
         required: false
         type: string
         description: Java version to build with
         default: '21'
+      maven-image:
+        required: true
+        type: string
+        description: Maven image to build with
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: ${{ inputs.maven-image }}
+      options: --user root
     permissions:
       actions: read
       contents: read
