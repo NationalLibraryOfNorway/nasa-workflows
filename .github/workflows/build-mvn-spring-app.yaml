@@ -66,6 +66,8 @@ jobs:
       options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
+    env:
+      TZ: "Europe/Oslo"
     steps:
 
       # prebuild
