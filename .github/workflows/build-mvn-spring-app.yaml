@@ -150,6 +150,8 @@ jobs:
           echo "DOCKER_HARBOR_USER_NASA=${{ secrets.DOCKER_HARBOR_USER_NASA }}" >> $GITHUB_ENV
           echo "DOCKER_HARBOR_PASS_NASA=${{ secrets.DOCKER_HARBOR_PASS_NASA }}" >> $GITHUB_ENV
           echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIVACTORY_NB=${{ secrets.ARTIFACTORY_NB }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_REPO_HOST=${{ secrets.ARTIFACTORY_NB }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
 
