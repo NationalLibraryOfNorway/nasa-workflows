@@ -81,23 +81,18 @@ jobs:
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
 
-      #- name: Generate ~/.m2/repository cache key
-      #  id: m2-cache-key
-      #  run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+      - name: Generate ~/.m2/repository cache key
+        id: m2-cache-key
+        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
 
-      #- name: Cache ~/.m2/repository
-      #  id: cache-m2-repository
-      #  uses: actions/cache@v4
-      #  with:
-      #    path: ~/.m2/repository
-      #    key: ${{ steps.m2-cache-key.outputs.keyname }}
-
-      - name: Cache Maven packages
+      - name: Cache ~/.m2/repository
+        id: cache-m2-repository
         uses: actions/cache@v4
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          key: ${{ steps.m2-cache-key.outputs.keyname }}
+          restore-keys: |
+            maven-week-
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
@@ -176,23 +171,18 @@ jobs:
           echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
 
-#      - name: Generate ~/.m2/repository cache key
-#        id: m2-cache-key
-#        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+      - name: Generate ~/.m2/repository cache key
+        id: m2-cache-key
+        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
 
-#      - name: Cache ~/.m2/repository
-#        id: cache-m2-repository
-#        uses: actions/cache@v4
-#        with:
-#          path: ~/.m2/repository
-#          key: ${{ steps.m2-cache-key.outputs.keyname }}
-
-      - name: Cache Maven packages
+      - name: Cache ~/.m2/repository
+        id: cache-m2-repository
         uses: actions/cache@v4
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          key: ${{ steps.m2-cache-key.outputs.keyname }}
+          restore-keys: |
+            maven-week-
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
@@ -269,6 +259,11 @@ jobs:
           echo "K8S_CERTIFICATE_AUTHORITY_DATA=${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}" >> $GITHUB_ENV
           echo "K8S_USER_TOKEN=${{ env.K8S_STAGE_USER_TOKEN }}" >> $GITHUB_ENV
           echo "K8S_USER=${{ env.K8S_USER }}" >> $GITHUB_ENV
+
+      - name: Echo Build tag
+        run: |
+          echo "Build tag from step: ${{ steps.generate-build-tag.outputs.build-tag }}"
+          echo "Build tag from env: ${{ env.BUILD_TAG }}"
 
       - name: Deploy stage
         run: |
