@@ -196,6 +196,7 @@ jobs:
           export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
           echo "Setting Build tag $BUILD_TAG"
           echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
+          echo "BUILD_TAG=${BUILD_TAG}" >> $GITHUB_ENV
 
       # maven build
       - name: Set maven artifact version
@@ -259,7 +260,7 @@ jobs:
         run: |
           export K8S_CONTEXT=nbno
           export SERVICE_NAME=${{ inputs.service-name }}
-          export RELEASE_VERSION=${{ steps.generate-build-tag.outputs.build-tag }}
+          export RELEASE_VERSION=${{ env.BUILD_TAG }}
           export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
           export REPLICAS=${{ inputs.dev-replicas }}
           
@@ -310,7 +311,7 @@ jobs:
         run: |
           export K8S_CONTEXT=e2e
           export SERVICE_NAME=${{ inputs.service-name }}
-          export RELEASE_VERSION=${{ steps.generate-build-tag.outputs.build-tag }}
+          export RELEASE_VERSION=${{ env.BUILD_TAG }}
           export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
           export REPLICAS=1
           
