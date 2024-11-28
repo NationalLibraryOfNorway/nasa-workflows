@@ -71,11 +71,14 @@ jobs:
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
-#      - name: set env
-#        run: |
-#          echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
-#          echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
-#          echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
+      - name: set env
+        run: |
+          echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_NB }}" >> $GITHUB_ENV
+          echo "PROXY_HOST_NB=${{ env.PROXY_HOST_NB }}" >> $GITHUB_ENV
+          echo "PROXY_PORT_NB=${{ env.PROXY_PORT_NB }}" >> $GITHUB_ENV
 
       - name: Generate ~/.m2/repository cache key
         id: m2-cache-key
@@ -92,8 +95,8 @@ jobs:
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
         with:
           artifactory-host: ${{ env.ARTIFACTORY_NB }}
-          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER_NASA }}
-          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS_NASA }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
           proxy-host-nb: ${{ env.PROXY_HOST_NB }}
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
 
@@ -178,11 +181,11 @@ jobs:
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
         with:
-          artifactory-host: ${{ secrets.ARTIFACTORY_NB }}
-          artifactory-user-nasa: ${{ secrets.ARTIFACTORY_USER_NASA }}
-          artifactory-pass-nasa: ${{ secrets.ARTIFACTORY_PASS_NASA }}
-          proxy-host-nb: ${{ vars.PROXY_HOST_NB }}
-          proxy-port-nb: ${{ vars.PROXY_PORT_NB }}
+          artifactory-host: ${{ env.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER_NASA }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS_NASA }}
+          proxy-host-nb: ${{ env.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ env.PROXY_PORT_NB }}
 
       - name: Generate build tag
         id: generate-build-tag
