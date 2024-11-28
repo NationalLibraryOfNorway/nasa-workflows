@@ -260,11 +260,6 @@ jobs:
           echo "K8S_USER_TOKEN=${{ env.K8S_STAGE_USER_TOKEN }}" >> $GITHUB_ENV
           echo "K8S_USER=${{ env.K8S_USER }}" >> $GITHUB_ENV
 
-      - name: Echo Build tag
-        run: |
-          echo "Build tag from step: ${{ steps.generate-build-tag.outputs.build-tag }}"
-          echo "Build tag from env: ${{ env.BUILD_TAG }}"
-
       - name: Deploy stage
         run: |
           export K8S_CONTEXT=nbno
@@ -274,6 +269,7 @@ jobs:
           export REPLICAS=${{ inputs.dev-replicas }}
           
           echo "Deploying service ${SERVICE_NAME} with tag: ${RELEASE_VERSION} to stage with replicas: ${REPLICAS}"
+          echo "K8S_CONTEXT=${K8S_CONTEXT} K8S_SERVER=${env.K8S_SERVER} K8S_CERTIFICATE_AUTHORITY_DATA=${env.K8S_CERTIFICATE_AUTHORITY_DATA} K8S_USER_TOKEN=${env.K8S_USER_TOKEN} K8S_USER=${env.K8S_USER}"
           
           kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
           kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
