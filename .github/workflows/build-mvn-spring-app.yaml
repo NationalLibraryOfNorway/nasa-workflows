@@ -3,22 +3,16 @@ name: Build mvn Spring app
 on:
   workflow_call:
     secrets:
-        ARTIFACTORY_USER_NASA:
-            required: true
-        ARTIFACTORY_PASS_NASA:
-            required: true
-        PROXY_NB:
-            required: true
-        ARTIFACTORY_NB:
-            required: true
-        DOCKER_REGISTRY_NB:
-            required: true
-        DOCKER_HARBOR_USER_NASA:
-            required: true
-        DOCKER_HARBOR_PASS_NASA:
-            required: true
-        NVD_REPO:
-            required: true
+      VAULT_URL:
+        required: true
+      VAULT_SECRET_PATH:
+        required: true
+      VAULT_ROLE:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
 
     outputs:
       build-tag:
@@ -48,7 +42,7 @@ on:
 
 jobs:
   test:
-    name: Run test
+    name: Build and Run test
     runs-on: self-hosted-linux
     services:
       docker:
@@ -62,16 +56,26 @@ jobs:
     env:
       TZ: "Europe/Oslo"
     steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
       - name: Checkout code
         uses: actions/checkout@v4
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
-      - name: set env
-        run: |
-          echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
+#      - name: set env
+#        run: |
+#          echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
+#          echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
+#          echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
 
       - name: Generate ~/.m2/repository cache key
         id: m2-cache-key
@@ -87,11 +91,11 @@ jobs:
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
         with:
-          artifactory-host: ${{ secrets.ARTIFACTORY_NB }}
-          artifactory-user-nasa: ${{ secrets.ARTIFACTORY_USER_NASA }}
-          artifactory-pass-nasa: ${{ secrets.ARTIFACTORY_PASS_NASA }}
-          proxy-host-nb: ${{ vars.PROXY_HOST_NB }}
-          proxy-port-nb: ${{ vars.PROXY_PORT_NB }}
+          artifactory-host: ${{ env.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER_NASA }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS_NASA }}
+          proxy-host-nb: ${{ env.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ env.PROXY_PORT_NB }}
 
       - name: Maven test
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots verify
@@ -114,7 +118,7 @@ jobs:
   build-app:
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    name: Build app
+    name: Build and publish docker image
     runs-on: self-hosted-linux
     services:
         docker:
@@ -130,6 +134,16 @@ jobs:
     env:
       TZ: "Europe/Oslo"
     steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
 
       # prebuild
       - name: Checkout code
