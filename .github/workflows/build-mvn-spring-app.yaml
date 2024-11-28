@@ -210,7 +210,6 @@ jobs:
       - name: Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@v4.1.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           settings-file: settings.xml
           maven-args: --no-transfer-progress
 
