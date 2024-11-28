@@ -271,7 +271,7 @@ jobs:
           export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
           export REPLICAS=${{ inputs.dev-replicas }}
           
-          echo "Deploying service ${SERVICE_NAME} with tag: ${build-tag} to stage with replicas: ${REPLICAS}"
+          echo "Deploying service ${SERVICE_NAME} with tag: ${RELEASE_VERSION} to stage with replicas: ${REPLICAS}"
           
           kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
           kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
@@ -322,7 +322,7 @@ jobs:
           export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
           export REPLICAS=1
           
-          echo "Deploying service ${SERVICE_NAME} with tag: ${build-tag} to e2e with replicas: ${REPLICAS}"
+          echo "Deploying service ${SERVICE_NAME} with tag: ${RELEASE_VERSION} to e2e with replicas: ${REPLICAS}"
           
           kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
           kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
