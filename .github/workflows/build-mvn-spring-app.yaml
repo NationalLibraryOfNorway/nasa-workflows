@@ -76,9 +76,10 @@ jobs:
           echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_NB }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
           echo "PROXY_HOST_NB=${{ env.PROXY_HOST_NB }}" >> $GITHUB_ENV
           echo "PROXY_PORT_NB=${{ env.PROXY_PORT_NB }}" >> $GITHUB_ENV
+          echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
 
       - name: Generate ~/.m2/repository cache key
         id: m2-cache-key
@@ -157,15 +158,15 @@ jobs:
 
       - name: set env
         run: |
-          echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
-          echo "DOCKER_REGISTRY_NB=${{ secrets.DOCKER_REGISTRY_NB }}" >> $GITHUB_ENV
-          echo "DOCKER_HARBOR_USER_NASA=${{ secrets.DOCKER_HARBOR_USER_NASA }}" >> $GITHUB_ENV
-          echo "DOCKER_HARBOR_PASS_NASA=${{ secrets.DOCKER_HARBOR_PASS_NASA }}" >> $GITHUB_ENV
-          echo "NVD_REPO=${{ secrets.NVD_REPO }}" >> $GITHUB_ENV
-          echo "ARTIVACTORY_NB=${{ secrets.ARTIFACTORY_NB }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_REPO_HOST=${{ secrets.ARTIFACTORY_NB }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER_NASA }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_PASS=${{ secrets.ARTIFACTORY_PASS_NASA }}" >> $GITHUB_ENV
+          echo "PROXY_NB=${{ env.PROXY_NB }}" >> $GITHUB_ENV
+          echo "DOCKER_REGISTRY_NB=${{ env.DOCKER_REGISTRY_NB }}" >> $GITHUB_ENV
+          echo "DOCKER_HARBOR_USER=${{ env.DOCKER_HARBOR_USER }}" >> $GITHUB_ENV
+          echo "DOCKER_HARBOR_PASS=${{ env.DOCKER_HARBOR_PASS }}" >> $GITHUB_ENV
+          echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIVACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_REPO_HOST=${{ env.ARTIFACTORY_NB }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
 
       - name: Generate ~/.m2/repository cache key
         id: m2-cache-key
