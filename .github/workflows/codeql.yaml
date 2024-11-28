@@ -34,7 +34,6 @@ jobs:
       options: --user root
     permissions:
       actions: read
-      contents: read
       security-events: write
 
     strategy:
