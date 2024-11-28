@@ -207,16 +207,15 @@ jobs:
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots  package
 
       # Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-      - name: Update dependency graph
-        uses: advanced-security/maven-dependency-submission-action@v4.1.1
-        with:
-          settings-file: settings.xml
-          maven-args: --no-transfer-progress
+#      - name: Update dependency graph
+#        uses: advanced-security/maven-dependency-submission-action@v4.1.1
+#        with:
+#          settings-file: settings.xml
+#          maven-args: --no-transfer-progress
 
       # publish artifacts
       - name: Publish artifacts
         run: |
-          cat settings.xml
           mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -DskipTests -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
      # docker build
