@@ -237,6 +237,10 @@ jobs:
     container:
       image: dtzar/helm-kubectl
       options: --user root
+    inputs:
+      service-name: ${{ inputs.service-name }}
+      release-version: ${{ steps.generate-build-tag.outputs.build-tag }}
+      replicas: ${{ inputs.dev-replicas }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -258,10 +262,10 @@ jobs:
       - name: Deploy stage
         run: |
           export K8S_CONTEXT=nbno
-          export SERVICE_NAME=${{ inputs.service-name }}
-          export RELEASE_VERSION=${{ steps.generate-build-tag.outputs.build-tag }}
+          export SERVICE_NAME=${service-name}
+          export RELEASE_VERSION=${release-version}
           export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
-          export REPLICAS=${{ inputs.dev-replicas }}
+          export REPLICAS=${replicas}
           
           echo "Deploying service ${SERVICE_NAME} with tag: ${build-tag} to stage with replicas: ${REPLICAS}"
           
