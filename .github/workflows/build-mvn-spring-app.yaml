@@ -119,17 +119,17 @@ jobs:
           fail-on-error: true
           fail-on-empty: true
 
-  build-app:
+  build-publish-app:
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Build and publish docker image
     runs-on: self-hosted-linux
     services:
-        docker:
-          image: docker:dind
-          options: --privileged
-          ports:
-            - 2375:2375
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
     container:
       image: ${{ inputs.maven-image }}
       options: --user root
@@ -207,19 +207,125 @@ jobs:
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots  package
 
       # Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-#      - name: Update dependency graph
-#        uses: advanced-security/maven-dependency-submission-action@v4.1.1
-#        with:
-#          settings-file: settings.xml
-#          maven-args: --no-transfer-progress
+      #      - name: Update dependency graph
+      #        uses: advanced-security/maven-dependency-submission-action@v4.1.1
+      #        with:
+      #          settings-file: settings.xml
+      #          maven-args: --no-transfer-progress
 
       # publish artifacts
       - name: Publish artifacts
         run: |
           mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -DskipTests -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
-     # docker build
+      # docker build
       - name: Build docker image
         run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
           if [ $DOCKER_POM ]; then mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
+  
+  
+  
+
+  deploy-stage:
+    name: Deploy to stage
+    needs: build-publish-app
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+      options: --user root
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: set env
+        run: |
+          echo "K8S_SERVER=${{ env.K8S_STAGE_SERVER }}" >> $GITHUB_ENV
+          echo "K8S_CERTIFICATE_AUTHORITY_DATA=${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}" >> $GITHUB_ENV
+          echo "K8S_USER_TOKEN=${{ env.K8S_STAGE_USER_TOKEN }}" >> $GITHUB_ENV
+          echo "K8S_USER=${{ env.K8S_USER }}" >> $GITHUB_ENV
+
+      - name: Deploy e2e
+        run: |
+          export K8S_CONTEXT=e2e
+          export SERVICE_NAME=${{ inputs.service-name }}
+          export RELEASE_VERSION=${{ steps.generate-build-tag.outputs.build-tag }}
+          export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
+          export REPLICAS=${{ inputs.dev-replicas }}
+          
+          echo ${build-tag}
+          
+          kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
+          kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
+          kubectl config set-credentials ${env.K8S_USER} --token="${env.K8S_USER_TOKEN}"
+          kubectl config set-context ${K8S_CONTEXT} --cluster=k8s --user=${env.K8S_USER}
+          kubectl config use-context ${K8S_CONTEXT}
+          helm repo add chartmuseum https://tools.nb.no/chartmuseum/
+          helm repo update
+          helm -n ${K8S_CONTEXT} upgrade --install --wait --wait-for-jobs ${SERVICE_NAME} chartmuseum/${SERVICE_NAME} --version ${RELEASE_VERSION} --set serviceAccount.name=${K8S_CONTEXT}  --set replicaCount=${REPLICAS:-1} --set-string springProfilesActive=${SPRING_PROFILES}
+  
+
+  deploy-e2e:
+    name: Deploy to e2e
+    needs: build-publish-app
+    if: ${{ inputs.deploy-e2e }}
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+      options: --user root
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: set env
+        run: |
+          echo "K8S_SERVER=${{ env.K8S_STAGE_SERVER }}" >> $GITHUB_ENV
+          echo "K8S_CERTIFICATE_AUTHORITY_DATA=${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}" >> $GITHUB_ENV
+          echo "K8S_USER_TOKEN=${{ env.K8S_STAGE_USER_TOKEN }}" >> $GITHUB_ENV
+          echo "K8S_USER=${{ env.K8S_USER }}" >> $GITHUB_ENV
+
+      - name: Deploy e2e
+        run: |
+          export K8S_CONTEXT=e2e
+          export SERVICE_NAME=${{ inputs.service-name }}
+          export RELEASE_VERSION=${{ steps.generate-build-tag.outputs.build-tag }}
+          export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
+          export REPLICAS=1
+          
+          echo ${build-tag}
+          
+          kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
+          kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
+          kubectl config set-credentials ${env.K8S_USER} --token="${env.K8S_USER_TOKEN}"
+          kubectl config set-context ${K8S_CONTEXT} --cluster=k8s --user=${env.K8S_USER}
+          kubectl config use-context ${K8S_CONTEXT}
+          helm repo add chartmuseum https://tools.nb.no/chartmuseum/
+          helm repo update
+          helm -n ${K8S_CONTEXT} upgrade --install --wait --wait-for-jobs ${SERVICE_NAME} chartmuseum/${SERVICE_NAME} --version ${RELEASE_VERSION} --set serviceAccount.name=${K8S_CONTEXT}  --set replicaCount=${REPLICAS:-1} --set-string springProfilesActive=${SPRING_PROFILES}
+
