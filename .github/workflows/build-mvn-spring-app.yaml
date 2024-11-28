@@ -176,16 +176,23 @@ jobs:
           echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
 
-      - name: Generate ~/.m2/repository cache key
-        id: m2-cache-key
-        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+#      - name: Generate ~/.m2/repository cache key
+#        id: m2-cache-key
+#        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
 
-      - name: Cache ~/.m2/repository
-        id: cache-m2-repository
-        uses: actions/cache@v4
+#      - name: Cache ~/.m2/repository
+#        id: cache-m2-repository
+#        uses: actions/cache@v4
+#        with:
+#          path: ~/.m2/repository
+#          key: ${{ steps.m2-cache-key.outputs.keyname }}
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
         with:
-          path: ~/.m2/repository
-          key: ${{ steps.m2-cache-key.outputs.keyname }}
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
