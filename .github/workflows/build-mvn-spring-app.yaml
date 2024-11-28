@@ -159,12 +159,13 @@ jobs:
       - name: set env
         run: |
           echo "PROXY_NB=${{ env.PROXY_NB }}" >> $GITHUB_ENV
+          echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY_NB=${{ env.DOCKER_REGISTRY_NB }}" >> $GITHUB_ENV
           echo "DOCKER_HARBOR_USER=${{ env.DOCKER_HARBOR_USER }}" >> $GITHUB_ENV
           echo "DOCKER_HARBOR_PASS=${{ env.DOCKER_HARBOR_PASS }}" >> $GITHUB_ENV
           echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
-          echo "ARTIVACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
-          echo "ARTIFACTORY_REPO_HOST=${{ env.ARTIFACTORY_NB }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
 
