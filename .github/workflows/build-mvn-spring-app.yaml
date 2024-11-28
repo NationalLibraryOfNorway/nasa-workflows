@@ -64,7 +64,7 @@ jobs:
           method: approle
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: secret/v1/application/k8s/nasa/cicd *
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -142,7 +142,7 @@ jobs:
           method: approle
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: secret/v1/application/k8s/nasa/cicd *
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
 
       # prebuild
