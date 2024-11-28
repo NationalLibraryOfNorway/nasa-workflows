@@ -183,8 +183,8 @@ jobs:
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
         with:
           artifactory-host: ${{ env.ARTIFACTORY_NB }}
-          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER_NASA }}
-          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS_NASA }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
           proxy-host-nb: ${{ env.PROXY_HOST_NB }}
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
 
