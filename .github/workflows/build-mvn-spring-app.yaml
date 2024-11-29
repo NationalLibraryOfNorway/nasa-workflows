@@ -1,7 +1,8 @@
 name: Build mvn Spring app
 
 on:
-  workflow_call:
+#  workflow_call:
+  workflow_dispatch:
     secrets:
       VAULT_URL:
         required: true
@@ -19,6 +20,11 @@ on:
         description: "Build tag"
         value: ${{ jobs.build-app.outputs.release-version }}
     inputs:
+      trigger-prod:
+        description: "Trigger production deployment?"
+        required: true
+        type: boolean
+        default: false
       maven-image:
         required: true
         type: string
@@ -310,7 +316,6 @@ jobs:
   deploy-prod:
     name: Deploy to prod
     needs: [build-publish-app, deploy-stage]
-    workflow_dispatch:
     runs-on: self-hosted-linux
     services:
       docker:
@@ -320,7 +325,8 @@ jobs:
           - 2375:2375
     container:
       image: dtzar/helm-kubectl
-      options: --user root
+      options: --user
+    if: ${{ github.event.inputs.trigger-prod == true }} # Deploy only if triggered manually
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
     steps:
