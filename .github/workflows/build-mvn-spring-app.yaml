@@ -257,7 +257,7 @@ jobs:
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
         with:
           release-version: ${{ env.BUILD_TAG }}
-          spring-profiles: 'docker,dev,auaudev'
+          spring-profiles: "docker\,dev\,auaudev"
           service-name: ${{ inputs.service-name }}
           k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_STAGE_SERVER }}
