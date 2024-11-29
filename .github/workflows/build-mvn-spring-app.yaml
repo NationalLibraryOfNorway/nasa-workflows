@@ -253,32 +253,19 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
-      - name: set env
-        run: |
-          echo "K8S_SERVER=${{ env.K8S_STAGE_SERVER }}" >> $GITHUB_ENV
-          echo "K8S_CERTIFICATE_AUTHORITY_DATA=${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}" >> $GITHUB_ENV
-          echo "K8S_USER_TOKEN=${{ env.K8S_STAGE_USER_TOKEN }}" >> $GITHUB_ENV
-          echo "K8S_USER=${{ env.K8S_USER }}" >> $GITHUB_ENV
-
       - name: Deploy stage
-        run: |
-          export K8S_CONTEXT=nbno
-          export SERVICE_NAME=${{ inputs.service-name }}
-          export RELEASE_VERSION=${{ env.BUILD_TAG }}
-          export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
-          export REPLICAS=${{ inputs.dev-replicas }}
-          
-          echo "Deploying service ${SERVICE_NAME} with tag: ${RELEASE_VERSION} to stage with replicas: ${REPLICAS}"
-          echo "K8S_CONTEXT=${K8S_CONTEXT} K8S_SERVER=${env.K8S_SERVER} K8S_CERTIFICATE_AUTHORITY_DATA=${env.K8S_CERTIFICATE_AUTHORITY_DATA} K8S_USER_TOKEN=${env.K8S_USER_TOKEN} K8S_USER=${env.K8S_USER}"
-          
-          kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
-          kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
-          kubectl config set-credentials ${env.K8S_USER} --token="${env.K8S_USER_TOKEN}"
-          kubectl config set-context ${K8S_CONTEXT} --cluster=k8s --user=${env.K8S_USER}
-          kubectl config use-context ${K8S_CONTEXT}
-          helm repo add chartmuseum https://tools.nb.no/chartmuseum/
-          helm repo update
-          helm -n ${K8S_CONTEXT} upgrade --install --wait --wait-for-jobs ${SERVICE_NAME} chartmuseum/${SERVICE_NAME} --version ${RELEASE_VERSION} --set serviceAccount.name=${K8S_CONTEXT}  --set replicaCount=${REPLICAS:-1} --set-string springProfilesActive=${SPRING_PROFILES}
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+        with:
+          release-version: ${{ env.BUILD_TAG }}
+          spring-profiles: 'docker\,dev\,auaudev'
+          service-name: ${{ inputs.service-name }}
+          k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
+          k8s-server: ${{ env.K8S_STAGE_SERVER }}
+          replicas: 1
+          k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
+          k8s-context: nbno
+          k8s-user: ${{ env.K8S_USER }}
+
 
   deploy-e2e:
     name: Deploy to e2e
@@ -307,29 +294,15 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
-      - name: set env
-        run: |
-          echo "K8S_SERVER=${{ env.K8S_STAGE_SERVER }}" >> $GITHUB_ENV
-          echo "K8S_CERTIFICATE_AUTHORITY_DATA=${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}" >> $GITHUB_ENV
-          echo "K8S_USER_TOKEN=${{ env.K8S_STAGE_USER_TOKEN }}" >> $GITHUB_ENV
-          echo "K8S_USER=${{ env.K8S_USER }}" >> $GITHUB_ENV
-
-      - name: Deploy e2e
-        run: |
-          export K8S_CONTEXT=e2e
-          export SERVICE_NAME=${{ inputs.service-name }}
-          export RELEASE_VERSION=${{ env.BUILD_TAG }}
-          export SPRING_PROFILES='dockere2e\,e2e\,auaue2e'
-          export REPLICAS=1
-          
-          echo "Deploying service ${SERVICE_NAME} with tag: ${RELEASE_VERSION} to e2e with replicas: ${REPLICAS}"
-          
-          kubectl config set-cluster k8s --server="${env.K8S_SERVER}"
-          kubectl config set clusters.k8s.certificate-authority-data ${env.K8S_CERTIFICATE_AUTHORITY_DATA}
-          kubectl config set-credentials ${env.K8S_USER} --token="${env.K8S_USER_TOKEN}"
-          kubectl config set-context ${K8S_CONTEXT} --cluster=k8s --user=${env.K8S_USER}
-          kubectl config use-context ${K8S_CONTEXT}
-          helm repo add chartmuseum https://tools.nb.no/chartmuseum/
-          helm repo update
-          helm -n ${K8S_CONTEXT} upgrade --install --wait --wait-for-jobs ${SERVICE_NAME} chartmuseum/${SERVICE_NAME} --version ${RELEASE_VERSION} --set serviceAccount.name=${K8S_CONTEXT}  --set replicaCount=${REPLICAS:-1} --set-string springProfilesActive=${SPRING_PROFILES}
-
+      - name: Deploy stage
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+        with:
+          release-version: ${{ env.BUILD_TAG }}
+          spring-profiles: 'dockere2e\,e2e\,auaue2e'
+          service-name: ${{ inputs.service-name }}
+          k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
+          k8s-server: ${{ env.K8S_STAGE_SERVER }}
+          replicas: 1
+          k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
+          k8s-context: e2e
+          k8s-user: ${{ env.K8S_USER }}
