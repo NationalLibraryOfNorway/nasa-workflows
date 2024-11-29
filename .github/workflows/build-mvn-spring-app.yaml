@@ -145,14 +145,16 @@ jobs:
       TZ: "Europe/Oslo"
     steps:
       - name: Import secrets from vault
-        uses: hashicorp/vault-action@v3
-        id: vault
-        with:
-          url: ${{ secrets.VAULT_URL }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+        uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/action/nasa-secrets@main
+        secrets: inherit
+#        uses: hashicorp/vault-action@v3
+#        id: vault
+#        with:
+#          url: ${{ secrets.VAULT_URL }}
+#          method: approle
+#          roleId: ${{ secrets.VAULT_ROLE_ID }}
+#          secretId: ${{ secrets.VAULT_SECRET_ID }}
+#          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
 
       # prebuild
