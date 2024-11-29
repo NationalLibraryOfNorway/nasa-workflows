@@ -62,14 +62,16 @@ jobs:
       TZ: "Europe/Oslo"
     steps:
       - name: Import secrets from vault
-        uses: hashicorp/vault-action@v3
-        id: vault
-        with:
-          url: ${{ secrets.VAULT_URL }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+        uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/action/nasa-secrets@main
+        secrets: inherit
+#        uses: hashicorp/vault-action@v3
+#        id: vault
+#        with:
+#          url: ${{ secrets.VAULT_URL }}
+#          method: approle
+#          roleId: ${{ secrets.VAULT_ROLE_ID }}
+#          secretId: ${{ secrets.VAULT_SECRET_ID }}
+#          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,6 +79,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: set env
+        secrets: inherit
         run: |
           echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
@@ -145,16 +148,14 @@ jobs:
       TZ: "Europe/Oslo"
     steps:
       - name: Import secrets from vault
-        uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/action/nasa-secrets@main
-        secrets: inherit
-#        uses: hashicorp/vault-action@v3
-#        id: vault
-#        with:
-#          url: ${{ secrets.VAULT_URL }}
-#          method: approle
-#          roleId: ${{ secrets.VAULT_ROLE_ID }}
-#          secretId: ${{ secrets.VAULT_SECRET_ID }}
-#          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
 
       # prebuild
@@ -165,6 +166,7 @@ jobs:
           fetch-depth: 0
 
       - name: set env
+        secrets: inherit
         run: |
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
           echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
