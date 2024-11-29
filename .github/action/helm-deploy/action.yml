@@ -44,5 +44,4 @@ runs:
         kubectl config use-context ${{ inputs.k8s-context }}
         helm repo add chartmuseum https://tools.nb.no/chartmuseum/
         helm repo update
-        echo "helm -n ${{inputs.k8s-context}} upgrade --install --wait --wait-for-jobs ${{inputs.service-name}} chartmuseum/${{inputs.service-name}} --version ${{ inputs.release-version }} --set serviceAccount.name=${{ inputs.k8s-context }}  --set replicaCount=${{ inputs.replicas}} --set-string springProfilesActive=${{inputs.spring-profiles}}"
         helm -n ${{inputs.k8s-context}} upgrade --install --wait --wait-for-jobs ${{inputs.service-name}} chartmuseum/${{inputs.service-name}} --version "${{ inputs.release-version }}" --set serviceAccount.name=${{ inputs.k8s-context }}  --set replicaCount=${{ inputs.replicas}} --set-string springProfilesActive="${{inputs.spring-profiles}}"
