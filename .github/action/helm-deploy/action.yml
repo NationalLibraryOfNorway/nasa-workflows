@@ -33,6 +33,7 @@ runs:
   using: "composite"
   steps:
     - name: Deploy to prod
+      shell: bash
       run: |
         echo "Deploying service ${{ inputs.service-name }} with tag: ${{ inputs.release-version }} to stage with replicas: ${{ inputs.replicas }} and spring profiles: ${{ inputs.spring-profiles }}"
 
