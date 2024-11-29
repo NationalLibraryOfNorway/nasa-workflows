@@ -19,11 +19,6 @@ on:
         description: "Build tag"
         value: ${{ jobs.build-app.outputs.release-version }}
     inputs:
-      trigger-prod:
-        description: "Trigger production deployment?"
-        required: true
-        type: boolean
-        default: false
       maven-image:
         required: true
         type: string
