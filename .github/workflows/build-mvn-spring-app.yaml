@@ -1,8 +1,7 @@
 name: Build mvn Spring app
 
 on:
-#  workflow_call:
-  workflow_dispatch:
+  workflow_call:
     secrets:
       VAULT_URL:
         required: true
@@ -313,35 +312,31 @@ jobs:
           k8s-context: e2e
           k8s-user: ${{ env.K8S_USER }}
 
-  deploy-prod:
-    name: Deploy to prod
-    needs: [build-publish-app, deploy-stage]
-    runs-on: self-hosted-linux
-    services:
-      docker:
-        image: docker:dind
-        options: --privileged
-        ports:
-          - 2375:2375
-    container:
-      image: dtzar/helm-kubectl
-      options: --user
-    if: ${{ github.event.inputs.trigger-prod == true }} # Deploy only if triggered manually
-    env:
-      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
-    steps:
-      - name: Import secrets from vault
-        uses: hashicorp/vault-action@v3
-        id: vault
-        with:
-          url: ${{ secrets.VAULT_URL }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
-
-      - name: Deploy prod
-        run: echo "Here we go.... Deploying to prod"
+#  deploy-prod:
+#    name: Deploy to prod
+#    needs: [build-publish-app, deploy-stage]
+#    runs-on: self-hosted-linux
+#    services:
+#      docker:
+#        image: docker:dind
+#        options: --privileged
+#        ports:
+#          - 2375:2375
+#    container:
+#      image: dtzar/helm-kubectl
+#      options: --user# Deploy only if triggered manually
+#    env:
+#      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+#    steps:
+#      - name: Import secrets from vault
+#        uses: hashicorp/vault-action@v3
+#        id: vault
+#        with:
+#          url: ${{ secrets.VAULT_URL }}
+#          method: approle
+#          roleId: ${{ secrets.VAULT_ROLE_ID }}
+#          secretId: ${{ secrets.VAULT_SECRET_ID }}
+#          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
 #      - name: Deploy prod
 #        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
