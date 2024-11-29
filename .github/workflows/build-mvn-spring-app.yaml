@@ -164,7 +164,6 @@ jobs:
           fetch-depth: 0
 
       - name: set env
-        secrets: inherit
         run: |
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
           echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
