@@ -306,3 +306,46 @@ jobs:
           k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
           k8s-context: e2e
           k8s-user: ${{ env.K8S_USER }}
+
+  deploy-prod:
+    name: Deploy to prod
+    needs: [build-publish-app, deploy-stage]
+    workflow_dispatch:
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+      options: --user root
+    env:
+      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Deploy prod
+        run: echo "Here we go.... Deploying to prod"
+
+#      - name: Deploy prod
+#        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+#        with:
+#          release-version: ${{ env.BUILD_TAG }}
+#          spring-profiles: 'docker\,prod\,auauprod'
+#          service-name: ${{ inputs.service-name }}
+#          k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
+#          k8s-server: ${{ env.K8S_PROD_SERVER }}
+#          replicas: ${{ inputs.prod-replicas }}
+#          k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
+#          k8s-context: nbno
+#          k8s-user: ${{ env.K8S_USER }}
