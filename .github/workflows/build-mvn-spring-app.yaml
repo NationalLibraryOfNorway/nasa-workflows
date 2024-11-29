@@ -56,17 +56,15 @@ jobs:
     env:
       TZ: "Europe/Oslo"
     steps:
-#      - name: Import secrets from vault
-#        uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/workflows/setup.yml@main
-#        secrets: inherit
-#        uses: hashicorp/vault-action@v3
-#        id: vault
-#        with:
-#          url: ${{ secrets.VAULT_URL }}
-#          method: approle
-#          roleId: ${{ secrets.VAULT_ROLE_ID }}
-#          secretId: ${{ secrets.VAULT_SECRET_ID }}
-#          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
       - name: Checkout code
         uses: actions/checkout@v4
