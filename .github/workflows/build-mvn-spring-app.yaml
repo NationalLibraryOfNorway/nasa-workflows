@@ -58,6 +58,7 @@ jobs:
     steps:
       - name: Import secrets from vault
         uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/action/nasa-secrets@main
+        secrets: inherit
 #        uses: hashicorp/vault-action@v3
 #        id: vault
 #        with:
