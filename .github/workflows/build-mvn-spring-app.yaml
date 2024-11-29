@@ -56,9 +56,9 @@ jobs:
     env:
       TZ: "Europe/Oslo"
     steps:
-      - name: Import secrets from vault
-        uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/workflows/setup.yml@main
-        secrets: inherit
+#      - name: Import secrets from vault
+#        uses: NationalLibraryOfNorway/nasa-workflows-secrets/.github/workflows/setup.yml@main
+#        secrets: inherit
 #        uses: hashicorp/vault-action@v3
 #        id: vault
 #        with:
