@@ -261,7 +261,7 @@ jobs:
           service-name: ${{ inputs.service-name }}
           k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_STAGE_SERVER }}
-          replicas: 1
+          replicas: ${{ inputs.dev-replicas }}
           k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
           k8s-context: nbno
           k8s-user: ${{ env.K8S_USER }}
