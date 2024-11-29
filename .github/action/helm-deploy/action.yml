@@ -1,0 +1,46 @@
+name: 'Helm Deploy'
+description: 'Helm Deploy for pipeline'
+inputs:
+  k8s-server:
+    description: 'k8s server'
+    required: true
+  k8s-certificate-authority-data:
+    description: 'k8s certificate authority data'
+    required: true
+  k8s-user-token:
+    description: 'k8s user token'
+    required: true
+  k8s-user:
+    description: 'k8s user'
+    required: true
+  k8s-context:
+    description: 'k8s context'
+    required: true
+  service-name:
+    description: 'Service name'
+    required: true
+  replicas:
+    description: 'Dev replicas'
+    required: true
+  release-version:
+    description: 'Release version'
+    required: true
+  spring-profiles:
+    description: 'Spring profiles'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Deploy to prod
+      run: |
+        echo "Deploying service ${{ inputs.service-name }} with tag: ${{ inputs.release-version }} to stage with replicas: ${{ inputs.replicas }} and spring profiles: ${{ inputs.spring-profiles }}"
+
+        kubectl config set-cluster k8s --server="${{ inputs.k8s-server }}"
+        kubectl config set clusters.k8s.certificate-authority-data ${{ inputs.k8s-certificate-authority-data }}
+        kubectl config set-credentials ${{ inputs.k8s-user }} --token="${{ inputs.k8s-user-token }}"
+        kubectl config set-context ${{ inputs.k8s-context }} --cluster=k8s --user=${{ inputs.k8s-user }}
+        kubectl config use-context ${{ inputs.k8s-context }}
+        helm repo add chartmuseum https://tools.nb.no/chartmuseum/
+        helm repo update
+        helm -n ${{ inputs.k8s-context }} upgrade --install --wait --wait-for-jobs ${{ inputs.service-name }} chartmuseum/${{ inputs.service-name }} --version ${{ inputs.release-version }} --set serviceAccount.name=${{ inputs.k8s-context }}  --set replicaCount=${{ inputs.replicas }} --set-string springProfilesActive=${{ inputs.spring-profiles }}
