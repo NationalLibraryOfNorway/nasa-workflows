@@ -207,13 +207,6 @@ jobs:
       - name: Build with Maven # --global-toolchains toolchains.xml
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
 
-       #Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-      - name: Update dependency graph
-        uses: advanced-security/maven-dependency-submission-action@v4.1.1
-        with:
-          settings-file: settings.xml
-          maven-args: --no-transfer-progress -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|127.0.0.1|docker
-
       # publish artifacts
       - name: Publish artifacts
         run: |
@@ -317,49 +310,16 @@ jobs:
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
+
+      #Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
+      - name: Update dependency graph
+        uses: advanced-security/maven-dependency-submission-action@v4.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          maven-args: --no-transfer-progress
+
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CUSTOM_TAG: ${{ env.BUILD_TAG }}
-
-
-
-#  deploy-prod:
-#    name: Deploy to prod
-#    needs: [build-publish-app, deploy-stage]
-#    runs-on: self-hosted-linux
-#    services:
-#      docker:
-#        image: docker:dind
-#        options: --privileged
-#        ports:
-#          - 2375:2375
-#    container:
-#      image: dtzar/helm-kubectl
-#      options: --user# Deploy only if triggered manually
-#    env:
-#      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
-#    steps:
-#      - name: Import secrets from vault
-#        uses: hashicorp/vault-action@v3
-#        id: vault
-#        with:
-#          url: ${{ secrets.VAULT_URL }}
-#          method: approle
-#          roleId: ${{ secrets.VAULT_ROLE_ID }}
-#          secretId: ${{ secrets.VAULT_SECRET_ID }}
-#          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
-
-#      - name: Deploy prod
-#        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
-#        with:
-#          release-version: ${{ env.BUILD_TAG }}
-#          spring-profiles: 'docker\,prod\,auauprod'
-#          service-name: ${{ inputs.service-name }}
-#          k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
-#          k8s-server: ${{ env.K8S_PROD_SERVER }}
-#          replicas: ${{ inputs.prod-replicas }}
-#          k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
-#          k8s-context: nbno
-#          k8s-user: ${{ env.K8S_USER }}
