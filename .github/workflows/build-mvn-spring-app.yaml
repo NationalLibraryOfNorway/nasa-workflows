@@ -266,12 +266,6 @@ jobs:
           k8s-context: nbno
           k8s-user: ${{ env.K8S_USER }}
 
-      - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CUSTOM_TAG: ${{ env.BUILD_TAG }}
-
 
   deploy-e2e:
     name: Deploy to e2e
@@ -312,6 +306,19 @@ jobs:
           k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
           k8s-context: e2e
           k8s-user: ${{ env.K8S_USER }}
+
+  bump-version-tag:
+    name: Bump version and push tag
+    needs: [build-publish-app, deploy-stage]
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+    steps:
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: ${{ env.BUILD_TAG }}
 
 
 
