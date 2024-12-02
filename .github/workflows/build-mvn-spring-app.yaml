@@ -223,17 +223,12 @@ jobs:
       - name: Build docker image
         run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ $DOCKER_POM ]; then 
-            mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true;
-            echo "DOCKER_BUILD=true" >> $GITHUB_ENV;
-          else
-            echo "DOCKER_BUILD=false" >> $GITHUB_ENV;
-          fi 
+          if [ $DOCKER_POM ]; then mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi 
 
   deploy-stage:
     name: Deploy to stage
     needs: build-publish-app
-    if: ${{ env.DOCKER_BUILD }}
+#    if: ${{ env.DOCKER_BUILD }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -274,7 +269,7 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: build-publish-app
-    if: ${{ env.DOCKER_BUILD && inputs.deploy-e2e }}
+    if: ${{ inputs.deploy-e2e }}
     runs-on: self-hosted-linux
     services:
       docker:
