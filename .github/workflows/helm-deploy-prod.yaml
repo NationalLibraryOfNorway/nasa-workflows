@@ -53,6 +53,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fix dubious ownership in git-repo
+        shell: bash
+        run: |
+          git config --global --add safe.directory '*'
+
       - name: Get Latest Git Tag
         id: get-tag
         run: |
