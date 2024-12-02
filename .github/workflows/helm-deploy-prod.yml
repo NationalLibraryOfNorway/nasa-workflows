@@ -1,0 +1,80 @@
+name: Deploy to prod
+
+on:
+  release:
+    types: [published]
+    secrets:
+      VAULT_URL:
+        required: true
+      VAULT_SECRET_PATH:
+        required: true
+      VAULT_ROLE:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
+
+    inputs:
+      prod-replicas:
+        required: false
+        type: number
+        default: 1
+      service-name:
+        required: true
+        type: string
+        description: Name of the service
+
+jobs:
+  deploy-prod:
+    name: Deploy to prod
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
+
+      - name: Get Latest Git Tag
+        id: get-tag
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "Latest Tag: $latest_tag"
+          echo "latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_ENV
+
+      - name: Deploy to prod
+        run: echo "Latest tag is ${{ env.latest_tag }}"
+
+
+#      - name: Deploy prod
+#        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+#        with:
+#          release-version: ${{ env.BUILD_TAG }}
+#          spring-profiles: 'docker\,prod\,auauprod'
+#          service-name: ${{ inputs.service-name }}
+#          k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
+#          k8s-server: ${{ env.K8S_PROD_SERVER }}
+#          replicas: ${{ inputs.prod-replicas }}
+#          k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
+#          k8s-context: nbno
+#          k8s-user: ${{ env.K8S_USER }}
