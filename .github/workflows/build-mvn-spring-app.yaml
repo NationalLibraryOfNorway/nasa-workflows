@@ -155,7 +155,7 @@ jobs:
 
       - name: set env
         run: |
-          echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
+          echo "PROXY_NB=${{ env.PROXY_NB }}" >> $GITHUB_ENV
           echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_REPO_URL=${{ env.ARTIFACTORY_REPO_URL }}" >> $GITHUB_ENV
