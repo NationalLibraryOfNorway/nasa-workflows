@@ -314,6 +314,11 @@ jobs:
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
         env:
