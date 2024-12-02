@@ -212,15 +212,28 @@ jobs:
         run: |
           mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
+      #Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
+      #      - name: Update dependency graph
+      #        uses: advanced-security/maven-dependency-submission-action@v4.1.1
+      #        with:
+      #          token: ${{ secrets.GITHUB_TOKEN }}
+      #          maven-args: --no-transfer-progress
+
       # docker build
       - name: Build docker image
         run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ $DOCKER_POM ]; then mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi
+          if [ $DOCKER_POM ]; then 
+            mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true;
+            echo "DOCKER_BUILD=true" >> $GITHUB_ENV;
+          else
+            echo "DOCKER_BUILD=false" >> $GITHUB_ENV;
+          fi 
 
   deploy-stage:
     name: Deploy to stage
     needs: build-publish-app
+    if: ${{ env.DOCKER_BUILD }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -261,7 +274,7 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: build-publish-app
-    if: ${{ inputs.deploy-e2e }}
+    if: ${{ env.DOCKER_BUILD && inputs.deploy-e2e }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -310,13 +323,6 @@ jobs:
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
-
-      #Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-      - name: Update dependency graph
-        uses: advanced-security/maven-dependency-submission-action@v4.1.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          maven-args: --no-transfer-progress
 
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
