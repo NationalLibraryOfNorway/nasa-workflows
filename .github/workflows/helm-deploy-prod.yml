@@ -1,8 +1,7 @@
 name: Deploy to prod
 
 on:
-  release:
-    types: [published]
+  workflow_call:
     secrets:
       VAULT_URL:
         required: true
