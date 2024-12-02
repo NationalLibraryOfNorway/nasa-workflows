@@ -27,10 +27,6 @@ on:
         required: false
         type: number
         default: 1
-      prod-replicas:
-        required: false
-        type: number
-        default: 1
       service-name:
         required: true
         type: string
@@ -162,6 +158,8 @@ jobs:
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
           echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_REPO_URL=${{ env.ARTIFACTORY_REPO_URL }}" >> $GITHUB_ENV
+          echo "HELM_REPO_URL=${{ env.HELM_REPO_URL }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY_NB=${{ env.DOCKER_REGISTRY_NB }}" >> $GITHUB_ENV
           echo "DOCKER_HARBOR_USER=${{ env.DOCKER_HARBOR_USER }}" >> $GITHUB_ENV
           echo "DOCKER_HARBOR_PASS=${{ env.DOCKER_HARBOR_PASS }}" >> $GITHUB_ENV
@@ -210,11 +208,11 @@ jobs:
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
 
        #Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-#      - name: Update dependency graph
-#        uses: advanced-security/maven-dependency-submission-action@v4.1.1
-#        with:
-#          settings-file: settings.xml
-#          maven-args: --no-transfer-progress -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|127.0.0.1|docker
+      - name: Update dependency graph
+        uses: advanced-security/maven-dependency-submission-action@v4.1.1
+        with:
+          settings-file: settings.xml
+          maven-args: --no-transfer-progress -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|127.0.0.1|docker
 
       # publish artifacts
       - name: Publish artifacts
