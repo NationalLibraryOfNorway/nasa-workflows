@@ -260,7 +260,7 @@ jobs:
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
       DOCKER_BUILD: ${{ needs.build-publish-app.outputs.docker-build }}
-    if: ${{ env.DOCKER_BUILD }}
+    if: ${{ DOCKER_BUILD }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -302,7 +302,7 @@ jobs:
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
       DOCKER_BUILD: ${{ needs.build-publish-app.outputs.docker-build }}
-    if: ${{ env.DOCKER_BUILD && inputs.deploy-e2e }}
+    if: ${{ DOCKER_BUILD && inputs.deploy-e2e }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
