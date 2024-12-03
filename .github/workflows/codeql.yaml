@@ -3,15 +3,15 @@ name: "CodeQL"
 on:
   workflow_call:
     secrets:
-      ARTIFACTORY_USER_NASA:
+      VAULT_URL:
         required: true
-      ARTIFACTORY_PASS_NASA:
+      VAULT_SECRET_PATH:
         required: true
-      PROXY_NB:
+      VAULT_ROLE:
         required: true
-      ARTIFACTORY_NB:
+      VAULT_ROLE_ID:
         required: true
-      NVD_REPO:
+      VAULT_SECRET_ID:
         required: true
     inputs:
       maven-image:
@@ -42,6 +42,49 @@ jobs:
         language: [ 'java' ]
 
     steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: set env
+        run: |
+          echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
+          echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
+
+#      - name: Generate ~/.m2/repository cache key
+#        id: m2-cache-key
+#        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+
+      - name: Cache ~/.m2/repository
+        id: cache-m2-repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-
+
+      - name: Create m2-settings
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
+        with:
+          artifactory-host: ${{ env.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
+          proxy-host-nb: ${{ env.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ env.PROXY_PORT_NB }}
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -56,16 +99,6 @@ jobs:
 
           # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
           queries: security-and-quality
-
-      # Setup Maven settings
-      - name: Create m2-settings
-        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
-        with:
-          artifactory-host: ${{ secrets.ARTIFACTORY_NB }}
-          artifactory-user-nasa: ${{ secrets.ARTIFACTORY_USER_NASA }}
-          artifactory-pass-nasa: ${{ secrets.ARTIFACTORY_PASS_NASA }}
-          proxy-host-nb: ${{ vars.PROXY_HOST_NB }}
-          proxy-port-nb: ${{ vars.PROXY_PORT_NB }}
 
       - name: Build
         run: |
