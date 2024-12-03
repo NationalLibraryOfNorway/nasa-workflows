@@ -119,7 +119,7 @@ jobs:
   build-publish-app:
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    name: Build and publish docker image
+    name: Build and publish artifacts
     runs-on: self-hosted-linux
     services:
       docker:
@@ -132,6 +132,7 @@ jobs:
       options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
+      docker-build: ${{ steps.docker-build.outputs.docker-build }}
     env:
       TZ: "Europe/Oslo"
     steps:
@@ -167,6 +168,8 @@ jobs:
           echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
           echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
+          echo "DEPENDENCYTRACK_BASE_URL=${{ env.DEPENDENCYTRACK_BASE_URL }}" >> $GITHUB_ENV
+          echo "DEPENDENCYTRACK_API_KEY=${{ env.DEPENDENCYTRACK_API_KEY }}" >> $GITHUB_ENV
 
 #      - name: Generate ~/.m2/repository cache key
 #        id: m2-cache-key
@@ -207,6 +210,11 @@ jobs:
       - name: Build with Maven # --global-toolchains toolchains.xml
         run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
 
+# TODO: Uncomment when Dependency Track is ready
+#      - name: Publish SBOM to Dependency Track
+#        run: |
+#          mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
+
       # publish artifacts
       - name: Publish artifacts
         run: |
@@ -221,14 +229,24 @@ jobs:
 
       # docker build
       - name: Build docker image
+        id: docker-build
         run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ $DOCKER_POM ]; then mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true; fi 
+          if [ -n "$DOCKER_POM" ]; then
+            mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true
+            export DOCKER_BUILD=true
+            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
+            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
+          else
+            export DOCKER_BUILD=false
+            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
+            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
+          fi
+          
 
   deploy-stage:
     name: Deploy to stage
     needs: build-publish-app
-#    if: ${{ env.DOCKER_BUILD }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -241,6 +259,8 @@ jobs:
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+      DOCKER_BUILD: ${{ needs.build-publish-app.outputs.docker-build }}
+    if: ${{ env.DOCKER_BUILD }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -269,7 +289,6 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: build-publish-app
-    if: ${{ inputs.deploy-e2e }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -282,6 +301,8 @@ jobs:
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+      DOCKER_BUILD: ${{ needs.build-publish-app.outputs.docker-build }}
+    if: ${{ env.DOCKER_BUILD && inputs.deploy-e2e }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
