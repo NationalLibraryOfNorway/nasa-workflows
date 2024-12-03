@@ -247,6 +247,7 @@ jobs:
   deploy-stage:
     name: Deploy to stage
     needs: build-publish-app
+    if: ${{ needs.build-publish-app.outputs.docker-build }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -259,8 +260,6 @@ jobs:
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
-      DOCKER_BUILD: ${{ needs.build-publish-app.outputs.docker-build }}
-    if: ${{ DOCKER_BUILD }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -289,6 +288,7 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: build-publish-app
+    if: ${{ needs.build-publish-app.outputs.docker-build && inputs.deploy-e2e }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -301,8 +301,6 @@ jobs:
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
-      DOCKER_BUILD: ${{ needs.build-publish-app.outputs.docker-build }}
-    if: ${{ DOCKER_BUILD && inputs.deploy-e2e }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
