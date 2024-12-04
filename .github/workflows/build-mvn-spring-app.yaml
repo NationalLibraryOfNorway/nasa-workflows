@@ -62,16 +62,6 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
-      - name: Load .env file
-        uses: aarcangeli/load-dotenv@v1
-
-      - name: Set env to ouputs
-        run: |
-          echo "service-name=${{ env.SERVICE-NAME }}"
-          echo "dev-replicas=${{ env.DEV_REPLICAS }}"
-          echo "prod-replicas=${{ env.PROD_REPLICAS }}"
-          echo "deploy-e2e=${{ env.DEPLOY_E2E }}"
-
       - name: Checkout code
         uses: actions/checkout@v4
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
@@ -163,6 +153,16 @@ jobs:
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+
+      - name: Set env to ouputs
+        run: |
+          echo "service-name=${{ env.SERVICE-NAME }}"
+          echo "dev-replicas=${{ env.DEV_REPLICAS }}"
+          echo "prod-replicas=${{ env.PROD_REPLICAS }}"
+          echo "deploy-e2e=${{ env.DEPLOY_E2E }}"
 
       - name: set env
         run: |
