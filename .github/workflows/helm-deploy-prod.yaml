@@ -14,16 +14,6 @@ on:
       VAULT_SECRET_ID:
         required: true
 
-#    inputs:
-#      prod-replicas:
-#        required: false
-#        type: number
-#        default: 1
-#      service-name:
-#        required: true
-#        type: string
-#        description: Name of the service
-
 jobs:
   deploy-prod:
     name: Deploy to prod

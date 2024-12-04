@@ -23,18 +23,6 @@ on:
         required: true
         type: string
         description: Maven image to build with
-#      dev-replicas:
-#        required: false
-#        type: number
-#        default: 1
-#      service-name:
-#       required: true
-#        type: string
-#        description: Name of the service
-#      deploy-e2e:
-#        required: false
-#        type: boolean
-#        default: false
 
 jobs:
   test:
