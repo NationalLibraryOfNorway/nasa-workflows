@@ -32,9 +32,6 @@ jobs:
     container:
       image: ${{ inputs.maven-image }}
       options: --user root
-    permissions:
-      actions: read
-      security-events: write
 
     strategy:
       fail-fast: false
@@ -54,6 +51,7 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+
 
       - name: set env
         run: |

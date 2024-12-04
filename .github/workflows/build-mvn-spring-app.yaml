@@ -23,18 +23,18 @@ on:
         required: true
         type: string
         description: Maven image to build with
-      dev-replicas:
-        required: false
-        type: number
-        default: 1
-      service-name:
-        required: true
-        type: string
-        description: Name of the service
-      deploy-e2e:
-        required: false
-        type: boolean
-        default: false
+#      dev-replicas:
+#        required: false
+#        type: number
+#        default: 1
+#      service-name:
+#       required: true
+#        type: string
+#        description: Name of the service
+#      deploy-e2e:
+#        required: false
+#        type: boolean
+#        default: false
 
 jobs:
   test:
@@ -133,6 +133,11 @@ jobs:
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
+      service-name: ${{ steps.set-file-env.outputs.service-name }}
+      dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
+      prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
+      deploy-e2e: ${{ steps.set-file-env.outputs.deploy-e2e }}
+      run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
     env:
       TZ: "Europe/Oslo"
     steps:
@@ -156,13 +161,17 @@ jobs:
 
       - name: Load .env file
         uses: aarcangeli/load-dotenv@v1
+        with:
+          if-file-not-found: 'ignore'
+          expand: 'true'
 
       - name: Set env to ouputs
+        id: set-file-env
         run: |
-          echo "service-name=${{ env.SERVICE-NAME }}"
-          echo "dev-replicas=${{ env.DEV_REPLICAS }}"
-          echo "prod-replicas=${{ env.PROD_REPLICAS }}"
-          echo "deploy-e2e=${{ env.DEPLOY_E2E }}"
+          echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
+          echo "dev-replicas=${{ env.DEV_REPLICAS }}" >> $GITHUB_OUTPUT
+          echo "deploy-e2e=${{ env.DEPLOY_E2E }}" >> $GITHUB_OUTPUT
+          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
 
       - name: set env
         run: |
@@ -230,13 +239,6 @@ jobs:
         run: |
           mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
-      #Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-      #      - name: Update dependency graph
-      #        uses: advanced-security/maven-dependency-submission-action@v4.1.1
-      #        with:
-      #          token: ${{ secrets.GITHUB_TOKEN }}
-      #          maven-args: --no-transfer-progress
-
       # docker build
       - name: Build docker image
         id: docker-build
@@ -270,6 +272,8 @@ jobs:
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+      SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
+      DEV_REPLICAS: ${{ needs.build-publish-app.outputs.dev-replicas }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -286,10 +290,10 @@ jobs:
         with:
           release-version: ${{ env.BUILD_TAG }}
           spring-profiles: 'docker\,dev\,auaudev'
-          service-name: ${{ inputs.service-name }}
+          service-name: ${{ env.SERVICE_NAME }}
           k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_STAGE_SERVER }}
-          replicas: ${{ inputs.dev-replicas }}
+          replicas: ${{ env.DEV_REPLICAS }}
           k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
           k8s-context: nbno
           k8s-user: ${{ env.K8S_USER }}
@@ -298,7 +302,7 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: build-publish-app
-    if: ${{ needs.build-publish-app.outputs.docker-build && inputs.deploy-e2e }}
+    if: ${{ needs.build-publish-app.outputs.docker-build && needs.build-publish-app.outputs.deploy-e2e }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -311,6 +315,7 @@ jobs:
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+      SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -327,7 +332,7 @@ jobs:
         with:
           release-version: ${{ env.BUILD_TAG }}
           spring-profiles: 'dockere2e\,e2e\,auaue2e'
-          service-name: ${{ inputs.service-name }}
+          service-name: ${{ env.SERVICE_NAME }}
           k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_STAGE_SERVER }}
           replicas: 1
@@ -353,3 +358,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CUSTOM_TAG: ${{ env.BUILD_TAG }}
+
+  run-nbno-api-test:
+    name: Trigger Run nbno-api-test
+    needs: [build-publish-app, deploy-stage, bump-version-tag]
+    if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run nbno-api-test
+        run: |
+          echo "Run nbno API tests call webhook here for start github action for api tests" 
+        

@@ -14,15 +14,15 @@ on:
       VAULT_SECRET_ID:
         required: true
 
-    inputs:
-      prod-replicas:
-        required: false
-        type: number
-        default: 1
-      service-name:
-        required: true
-        type: string
-        description: Name of the service
+#    inputs:
+#      prod-replicas:
+#        required: false
+#        type: number
+#        default: 1
+#      service-name:
+#        required: true
+#        type: string
+#        description: Name of the service
 
 jobs:
   deploy-prod:
@@ -36,6 +36,12 @@ jobs:
           - 2375:2375
     container:
       image: dtzar/helm-kubectl
+    outputs:
+      service-name: ${{ steps.set-file-env.outputs.service-name }}
+      dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
+      prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
+      deploy-e2e: ${{ steps.set-file-env.outputs.deploy-e2e }}
+      run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -52,6 +58,19 @@ jobs:
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+        with:
+          if-file-not-found: 'ignore'
+          expand: 'true'
+
+      - name: Set env to ouputs
+        id: set-file-env
+        run: |
+          echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
+          echo "prod-replicas=${{ env.PROD_REPLICAS }}" >> $GITHUB_OUTPUT
+          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
 
       - name: Fix dubious ownership in git-repo
         shell: bash
@@ -70,10 +89,20 @@ jobs:
         with:
           release-version: ${{ env.latest_tag }}
           spring-profiles: 'docker\,prod\,auauprod'
-          service-name: ${{ inputs.service-name }}
+          service-name: ${{ needs.deploy-prod.outputs.service-name }}
           k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_PROD_SERVER }}
-          replicas: ${{ inputs.prod-replicas }}
+          replicas: ${{ needs.deploy-prod.outputs.prod-replicas }}
           k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
           k8s-context: nbno
           k8s-user: ${{ env.K8S_USER }}
+
+  run-nbno-api-test:
+    name: Trigger Run nbno-api-test
+    needs: [ deploy-prod ]
+    if: ${{ needs.deploy-prod.outputs.run-api-tests == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run nbno-api-test
+        run: |
+          echo "Run nbno API tests call webhook here for start github action for api tests"
