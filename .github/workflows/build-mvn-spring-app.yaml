@@ -354,6 +354,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run nbno-api-test
-        run: |
-          echo "Run nbno API tests call webhook here for start github action for api tests" 
-        
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.NASA_NBNO_API_TEST_PAT }}
+          repository: NationalLibraryOfNorway/nbno-api-test
+          event-type: dispatch-event-stage
