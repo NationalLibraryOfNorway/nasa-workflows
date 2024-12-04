@@ -302,7 +302,7 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: build-publish-app
-    if: ${{ needs.build-publish-app.outputs.docker-build && needs.build-publish-app.outputs.deploy-e2e }}
+    if: ${{ needs.build-publish-app.outputs.docker-build && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
     runs-on: self-hosted-linux
     services:
       docker:
