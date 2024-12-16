@@ -90,7 +90,7 @@ jobs:
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
 
       - name: Maven test
-        run: mvn -e -X -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dcyclonedx.skip=true verify
+        run: mvn -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dcyclonedx.skip=true verify
 
       - name: Fix dubious ownership in git-repo
         shell: bash
