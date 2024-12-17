@@ -35,7 +35,6 @@ runs:
           { "id": "releases", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-release-local", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } }
         ]'
         proxies: '[
-          { "id": "nb-proxy-http", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "localhost|127.0.0.1|docker"},
           { "id": "nb-proxy-https", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "localhost|127.0.0.1|docker"}
         ]'
         output_file: 'settings.xml'
