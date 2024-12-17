@@ -93,7 +93,7 @@ jobs:
       - name: Maven test
         run: |
           export JAVA_TOOL_OPTIONS="-Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }}" 
-          MAVEN_OPTS="-Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|127.0.0.1|docker"
+          MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|127.0.0.1|docker"
           mvn -X $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dcyclonedx.skip=true verify
 
       - name: Fix dubious ownership in git-repo
