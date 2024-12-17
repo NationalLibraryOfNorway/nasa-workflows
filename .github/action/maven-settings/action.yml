@@ -35,7 +35,7 @@ runs:
           { "id": "releases", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-release-local", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } }
         ]'
         proxies: '[
-          { "id": "nb-proxy-https", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "localhost|127.0.0.1|docker|nb.no"}
+          { "id": "nb-proxy", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "*.nb.no|docker|localhost|127.*|[::1]|"}
         ]'
         output_file: 'settings.xml'
     - name: Download toolchain file
