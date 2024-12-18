@@ -82,7 +82,7 @@ jobs:
           secretKey: ${{ env.S3_NB_SECRET_KEY }}
           bucket: ${{ env.S3_NB_CACHE_BUCKET }}
           use-fallback: true
-          path:
+          path: |
             ~/.m2/repository
             /root/.m2/repository
           # Using datetime in cache key as OWASP database may change, without the pom changing
@@ -202,7 +202,7 @@ jobs:
           secretKey: ${{ env.S3_NB_SECRET_KEY }}
           bucket: ${{ env.S3_NB_CACHE_BUCKET }}
           use-fallback: true
-          path:
+          path: |
             ~/.m2/repository
             /root/.m2/repository
           # Using datetime in cache key as OWASP database may change, without the pom changing
