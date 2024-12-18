@@ -27,10 +27,7 @@ runs:
           { "id": "releases", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" }
         ]'
         repositories: '[
-          { "id": "central", "url": "https://repo1.maven.org/maven2/", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } },
-          { "id": "confluent", "url": "https://packages.confluent.io/maven/" },
-          { "id": "jitpack", "url": "https://jitpack.io" },
-          { "id": "shibboleth", "url": "https://build.shibboleth.net/nexus/content/repositories/releases/" },
+          { "id": "nbcache", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-release" },
           { "id": "snapshots", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-snapshot-local", "releases": { "enabled": "false" }, "snapshots": { "enabled": "true" } },
           { "id": "releases", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-release-local", "releases": { "enabled": "true" }, "snapshots": { "enabled": "false" } }
         ]'
