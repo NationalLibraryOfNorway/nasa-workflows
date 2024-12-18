@@ -72,12 +72,25 @@ jobs:
 #        id: m2-cache-key
 #        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
 
-      - name: Cache ~/.m2/repository
-        id: cache-m2-repository
-        uses: actions/cache@v4
+#      - name: Cache ~/.m2/repository
+#        id: cache-m2-repository
+#        uses: actions/cache@v4
+#        with:
+#          path: ~/.m2
+#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: ${{ runner.os }}-m2-
+
+      - name: Cache maven
+        uses: tespkg/actions-cache@v1
         with:
-          path: ~/.m2
+          endpoint: ${{ env.S3_NB_HOST}}
+          accessKey: ${{ env.S3_NB_ACCESS_KEY }}
+          secretKey: ${{ env.S3_NB_SECRET_KEY }}
+          bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+          use-fallback: true
+
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          path: ~/.m2/repository
           restore-keys: ${{ runner.os }}-m2-
 
       - name: Create m2-settings
@@ -188,12 +201,25 @@ jobs:
 #        id: m2-cache-key
 #        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
 
-      - name: Cache ~/.m2/repository
-        id: cache-m2-repository
-        uses: actions/cache@v4
+#      - name: Cache ~/.m2/repository
+#        id: cache-m2-repository
+#        uses: actions/cache@v4
+#        with:
+#          path: ~/.m2
+#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: ${{ runner.os }}-m2-
+
+      - name: Cache maven
+        uses: tespkg/actions-cache@v1
         with:
-          path: ~/.m2
+          endpoint: ${{ env.S3_NB_HOST}}
+          accessKey: ${{ env.S3_NB_ACCESS_KEY }}
+          secretKey: ${{ env.S3_NB_SECRET_KEY }}
+          bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+          use-fallback: true
+
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          path: ~/.m2/repository
           restore-keys: ${{ runner.os }}-m2-
 
       - name: Create m2-settings
