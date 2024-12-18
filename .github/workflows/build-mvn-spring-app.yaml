@@ -68,19 +68,13 @@ jobs:
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
 
-#      - name: Generate ~/.m2/repository cache key
-#        id: m2-cache-key
-#        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "datetime=$(/bin/date -u "+%Y%m%d%H")" >> $GITHUB_OUTPUT
+        shell: bash
 
-#      - name: Cache ~/.m2/repository
-#        id: cache-m2-repository
-#        uses: actions/cache@v4
-#        with:
-#          path: ~/.m2
-#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-#          restore-keys: ${{ runner.os }}-m2-
-
-      - name: Cache maven
+      - name: Cache
         uses: tespkg/actions-cache@v1
         with:
           endpoint: ${{ env.S3_NB_HOST}}
@@ -88,10 +82,12 @@ jobs:
           secretKey: ${{ env.S3_NB_SECRET_KEY }}
           bucket: ${{ env.S3_NB_CACHE_BUCKET }}
           use-fallback: true
-
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           path: ~/.m2/repository
-          restore-keys: ${{ runner.os }}-m2-
+          # Using datetime in cache key as OWASP database may change, without the pom changing
+          key: ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}
+            ${{ runner.os }}-maven-
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
@@ -102,7 +98,6 @@ jobs:
           proxy-host-nb: ${{ env.PROXY_HOST_NB }}
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
 
-      # export JAVA_TOOL_OPTIONS proxy for dependency-check
       - name: Maven test
         run: |
           export MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|127.0.0.1|docker|*.nb.no"
@@ -197,19 +192,7 @@ jobs:
           echo "DEPENDENCYTRACK_BASE_URL=${{ env.DEPENDENCYTRACK_BASE_URL }}" >> $GITHUB_ENV
           echo "DEPENDENCYTRACK_API_KEY=${{ env.DEPENDENCYTRACK_API_KEY }}" >> $GITHUB_ENV
 
-#      - name: Generate ~/.m2/repository cache key
-#        id: m2-cache-key
-#        run: echo "keyname=$(date +'maven-week-%U')" >> $GITHUB_OUTPUT
-
-#      - name: Cache ~/.m2/repository
-#        id: cache-m2-repository
-#        uses: actions/cache@v4
-#        with:
-#          path: ~/.m2
-#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-#          restore-keys: ${{ runner.os }}-m2-
-
-      - name: Cache maven
+      - name: Cache
         uses: tespkg/actions-cache@v1
         with:
           endpoint: ${{ env.S3_NB_HOST}}
@@ -217,10 +200,12 @@ jobs:
           secretKey: ${{ env.S3_NB_SECRET_KEY }}
           bucket: ${{ env.S3_NB_CACHE_BUCKET }}
           use-fallback: true
-
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           path: ~/.m2/repository
-          restore-keys: ${{ runner.os }}-m2-
+          # Using datetime in cache key as OWASP database may change, without the pom changing
+          key: ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}
+            ${{ runner.os }}-maven-
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
