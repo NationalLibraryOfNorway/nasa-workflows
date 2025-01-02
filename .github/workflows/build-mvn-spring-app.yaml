@@ -351,7 +351,7 @@ jobs:
 
   bump-version-tag:
     name: Bump version and push tag
-    needs: [build-publish-app, deploy-stage]
+    needs: [build-publish-app]
     runs-on: ubuntu-latest
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
