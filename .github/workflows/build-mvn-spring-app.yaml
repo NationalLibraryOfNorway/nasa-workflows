@@ -68,12 +68,6 @@ jobs:
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
 
-#      - name: Get Date
-#        id: get-date
-#        run: |
-#          echo "datetime=$(/bin/date -u "+%Y%m%d%H")" >> $GITHUB_OUTPUT
-#        shell: bash
-
       - name: Cache
         uses: tespkg/actions-cache@v1
         with:
@@ -84,8 +78,6 @@ jobs:
           use-fallback: true
           path: |
             ~/.m2/repository
-            /root/.m2/repository
-          # Using datetime in cache key as OWASP database may change, without the pom changing
           key: maven-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             maven-${{ runner.os }}-${{ github.ref_name }}-
@@ -204,8 +196,6 @@ jobs:
           use-fallback: true
           path: |
             ~/.m2/repository
-            /root/.m2/repository
-          # Using datetime in cache key as OWASP database may change, without the pom changing
           key: maven-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             maven-${{ runner.os }}-${{ github.ref_name }}-
