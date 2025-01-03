@@ -68,11 +68,11 @@ jobs:
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
 
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "datetime=$(/bin/date -u "+%Y%m%d%H")" >> $GITHUB_OUTPUT
-        shell: bash
+#      - name: Get Date
+#        id: get-date
+#        run: |
+#          echo "datetime=$(/bin/date -u "+%Y%m%d%H")" >> $GITHUB_OUTPUT
+#        shell: bash
 
       - name: Cache
         uses: tespkg/actions-cache@v1
@@ -86,10 +86,10 @@ jobs:
             ~/.m2/repository
             /root/.m2/repository
           # Using datetime in cache key as OWASP database may change, without the pom changing
-          key: ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}-${{ hashFiles('**/pom.xml') }}
+          key: maven-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}
-            ${{ runner.os }}-maven-
+            maven-${{ runner.os }}-${{ github.ref_name }}-
+            maven-${{ runner.os }}
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
@@ -206,10 +206,10 @@ jobs:
             ~/.m2/repository
             /root/.m2/repository
           # Using datetime in cache key as OWASP database may change, without the pom changing
-          key: ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}-${{ hashFiles('**/pom.xml') }}
+          key: maven-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-maven-${{ steps.get-date.outputs.datetime }}
-            ${{ runner.os }}-maven-
+            maven-${{ runner.os }}-${{ github.ref_name }}-
+            maven-${{ runner.os }}
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
