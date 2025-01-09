@@ -1,0 +1,105 @@
+name: Deploy to prod
+
+on:
+  workflow_call:
+    secrets:
+      VAULT_URL:
+        required: true
+      VAULT_SECRET_PATH:
+        required: true
+      VAULT_ROLE:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
+      NASA_NBNO_API_TEST_PAT:
+        required: true
+
+
+jobs:
+  deploy-prod:
+    name: Deploy to prod
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+    outputs:
+      service-name: ${{ steps.set-file-env.outputs.service-name }}
+      prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
+      prod-spring-profiles: ${{ steps.set-file-env.outputs.prod-spring-profiles }}
+      run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+        with:
+          if-file-not-found: 'ignore'
+          expand: 'true'
+
+      - name: Set env to ouputs
+        id: set-file-env
+        run: |
+          echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
+          echo "prod-replicas=${{ env.PROD_REPLICAS }}" >> $GITHUB_OUTPUT
+          echo "prod-spring-profiles=${{ env.PROD_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
+          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
+          echo "
+
+      - name: Fix dubious ownership in git-repo
+        shell: bash
+        run: |
+          git config --global --add safe.directory '*'
+
+      - name: Get Latest Git Tag
+        id: get-tag
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_ENV
+
+      - name: Deploy prod
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+        with:
+          release-version: ${{ env.latest_tag }}
+          spring-profiles: ${{ needs.deploy-prod.outputs.prod-spring-profiles }}
+          service-name: ${{ needs.deploy-prod.outputs.service-name }}
+          k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
+          k8s-server: ${{ env.K8S_PROD_SERVER }}
+          replicas: ${{ needs.deploy-prod.outputs.prod-replicas }}
+          k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
+          k8s-context: nbno
+          k8s-user: ${{ env.K8S_USER }}
+
+  run-nbno-api-test:
+    name: Trigger Run nbno-api-test
+    needs: [ deploy-prod ]
+    if: ${{ needs.deploy-prod.outputs.run-api-tests == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run nbno-api-test
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.NASA_NBNO_API_TEST_PAT }}
+          repository: NationalLibraryOfNorway/nbno-api-test
+          event-type: dispatch-event-prod
