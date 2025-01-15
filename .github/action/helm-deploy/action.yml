@@ -32,10 +32,10 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Deploy to prod
+    - name: Helm Deploy
       shell: bash
       run: |
-        echo "Deploying service ${{ inputs.service-name }} with tag: ${{ inputs.release-version }} to stage with replicas: ${{ inputs.replicas }} and spring profiles: ${{ inputs.spring-profiles }}"
+        echo "Deploying service ${{ inputs.service-name }} with tag: ${{ inputs.release-version }} with replicas: ${{ inputs.replicas }} and spring profiles: ${{ inputs.spring-profiles }}"
 
         kubectl config set-cluster k8s --server="${{ inputs.k8s-server }}"
         kubectl config set clusters.k8s.certificate-authority-data ${{ inputs.k8s-certificate-authority-data }}
