@@ -55,15 +55,7 @@ jobs:
       - name: Load .env file
         uses: aarcangeli/load-dotenv@v1
         with:
-          if-file-not-found: 'ignore'
           expand: 'true'
-
-      - name: Set env to ouputs
-        id: set-file-env
-        run: |
-          echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
-          echo "prod-replicas=${{ env.PROD_REPLICAS }}" >> $GITHUB_OUTPUT
-          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
 
       - name: Fix dubious ownership in git-repo
         shell: bash
@@ -82,10 +74,10 @@ jobs:
         with:
           release-version: ${{ env.latest_tag }}
           spring-profiles: 'docker\,prod\,auauprod'
-          service-name: ${{ needs.deploy-prod.outputs.service-name }}
+          service-name: ${{ env.SERVICE_NAME }}
           k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_PROD_SERVER }}
-          replicas: ${{ needs.deploy-prod.outputs.prod-replicas }}
+          replicas: ${{ env.PROD_REPLICAS }}
           k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
           k8s-context: nbno
           k8s-user: ${{ env.K8S_USER }}
