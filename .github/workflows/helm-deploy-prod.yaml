@@ -30,10 +30,6 @@ jobs:
     container:
       image: dtzar/helm-kubectl
     outputs:
-      service-name: ${{ steps.set-file-env.outputs.service-name }}
-      dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
-      prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
-      deploy-e2e: ${{ steps.set-file-env.outputs.deploy-e2e }}
       run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
     steps:
       - name: Import secrets from vault
@@ -56,6 +52,11 @@ jobs:
         uses: aarcangeli/load-dotenv@v1
         with:
           expand: 'true'
+
+      - name: Set env to ouputs
+        id: set-file-env
+        run: |
+          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
 
       - name: Fix dubious ownership in git-repo
         shell: bash
