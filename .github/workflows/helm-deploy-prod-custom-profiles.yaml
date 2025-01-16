@@ -64,29 +64,24 @@ jobs:
           echo "prod-replicas=${{ env.PROD_REPLICAS }}" >> $GITHUB_OUTPUT
           echo "prod-spring-profiles=${{ env.PROD_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
           echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
-          echo "
 
       - name: Fix dubious ownership in git-repo
         shell: bash
         run: |
           git config --global --add safe.directory '*'
 
-      - name: Get Latest Git Tag
-        id: get-tag
-        run: |
-          git fetch --tags
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          echo "latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_ENV
+      - name: Set Release Tag as Environment Variable
+        run: echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Deploy prod
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
         with:
-          release-version: ${{ env.latest_tag }}
-          spring-profiles: ${{ needs.deploy-prod.outputs.prod-spring-profiles }}
-          service-name: ${{ needs.deploy-prod.outputs.service-name }}
+          release-version: ${{ env.RELEASE_TAG }}
+          spring-profiles: ${{ env.PROD_SPRING_PROFILES }}
+          service-name: ${{ env.SERVICE_NAME }}
           k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_PROD_SERVER }}
-          replicas: ${{ needs.deploy-prod.outputs.prod-replicas }}
+          replicas: ${{ env.PROD_REPLICAS }}
           k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
           k8s-context: nbno
           k8s-user: ${{ env.K8S_USER }}
