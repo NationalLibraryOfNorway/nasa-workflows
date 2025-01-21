@@ -42,6 +42,8 @@ jobs:
       options: --user root
     env:
       TZ: "Europe/Oslo"
+    outputs:
+      repo_name: ${{ steps.repo_name.outputs.repo_name }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -68,6 +70,13 @@ jobs:
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
 
+      - name: Extract repo name
+        id: repo_name
+        run: |
+          REPO="${{ github.repository }}"
+          echo "repo_name=${REPO##*/}" >> $GITHUB_ENV
+          echo "repo_name=${REPO##*/}" >> $GITHUB_OUTPUT
+
       - name: Cache
         uses: tespkg/actions-cache@v1
         with:
@@ -78,10 +87,10 @@ jobs:
           use-fallback: true
           path: |
             ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ${{ runner.os }}-maven-${{ env.repo_name }}-${{ github.ref_name }}-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
           restore-keys: |
-            maven-${{ runner.os }}-${{ github.ref_name }}-
-            maven-${{ runner.os }}
+            ${{ runner.os }}-maven-${{ env.repo_name }}-${{ github.ref_name }}-
+            ${{ runner.os }}-maven-${{ env.repo_name }}-
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
@@ -201,10 +210,9 @@ jobs:
           use-fallback: true
           path: |
             ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ${{ runner.os }}-maven-${{ needs.test.outputs.repo_name }}-${{ github.ref_name }}-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
           restore-keys: |
-            maven-${{ runner.os }}-${{ github.ref_name }}-
-            maven-${{ runner.os }}
+            ${{ runner.os }}-maven-${{ needs.test.outputs.repo_name }}-${{ github.ref_name }}-
 
       - name: Create m2-settings
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/maven-settings@main
