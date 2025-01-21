@@ -224,7 +224,8 @@ jobs:
       - name: Generate build tag
         id: generate-build-tag
         run: |
-          export MAVEN_VERSION=`./mvnw -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep SNAPSHOT |  grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
+          export MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no"
+          export MAVEN_VERSION=`./mvnw $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep SNAPSHOT |  grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
           export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
           echo "Setting Build tag $BUILD_TAG"
           echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
@@ -233,11 +234,14 @@ jobs:
       # maven build
       - name: Set maven artifact version
         run: |
-          ./mvnw -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
-          ./mvnw -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress versions:commit
+          export MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no"
+          ./mvnw $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
+          ./mvnw $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress versions:commit
 
       - name: Build with Maven # --global-toolchains toolchains.xml
-        run: ./mvnw -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
+        run: |
+          export MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no"
+          ./mvnw $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
 
 # TODO: Uncomment when Dependency Track is ready
 #      - name: Publish SBOM to Dependency Track
@@ -247,7 +251,8 @@ jobs:
       # publish artifacts
       - name: Publish artifacts
         run: |
-          ./mvnw -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
+          export MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no"
+          ./mvnw $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
       # docker build
       - name: Build docker image
@@ -255,7 +260,8 @@ jobs:
         run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
           if [ -n "$DOCKER_POM" ]; then
-            ./mvnw -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true
+            export MAVEN_OPTS="-Ddownloader.quick.query.timestamp=false -Dhttps.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttps.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.proxyHost=${{ env.PROXY_HOST_NB }} -Dhttp.proxyPort=${{ env.PROXY_PORT_NB }} -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no"
+            ./mvnw $MAVEN_OPTS -s settings.xml --global-toolchains toolchains.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true
             export DOCKER_BUILD=true
             echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
             echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
