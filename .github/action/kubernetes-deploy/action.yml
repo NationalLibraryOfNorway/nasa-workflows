@@ -1,5 +1,5 @@
-name: 'Helm Deploy'
-description: 'Helm Deploy for pipeline'
+name: 'Kubernetes Deploy'
+description: 'Kubernetes Deploy for pipeline'
 inputs:
   k8s-server:
     description: 'k8s server'
@@ -18,25 +18,27 @@ inputs:
     required: true
   service-name:
     description: 'Service name'
-    required: true
+    required: false
   replicas:
     description: 'Dev replicas'
-    required: true
+    required: false
   release-version:
     description: 'Release version'
-    required: true
+    required: false
   spring-profiles:
     description: 'Spring profiles'
-    required: true
+    required: false
+  cmd:
+    description: 'Custom deployment command'
+    required: false
+
 
 runs:
   using: "composite"
   steps:
-    - name: Helm Deploy
+    - name: Kubernetes Deploy
       shell: bash
       run: |
-        echo "Deploying service ${{ inputs.service-name }} with tag: ${{ inputs.release-version }} with replicas: ${{ inputs.replicas }} and spring profiles: ${{ inputs.spring-profiles }}"
-
         kubectl config set-cluster k8s --server="${{ inputs.k8s-server }}"
         kubectl config set clusters.k8s.certificate-authority-data ${{ inputs.k8s-certificate-authority-data }}
         kubectl config set-credentials ${{ inputs.k8s-user }} --token="${{ inputs.k8s-user-token }}"
@@ -44,4 +46,8 @@ runs:
         kubectl config use-context ${{ inputs.k8s-context }}
         helm repo add chartmuseum https://tools.nb.no/chartmuseum/
         helm repo update
-        helm -n ${{inputs.k8s-context}} upgrade --install --wait --wait-for-jobs ${{inputs.service-name}} chartmuseum/${{inputs.service-name}} --version "${{ inputs.release-version }}" --set serviceAccount.name=${{ inputs.k8s-context }}  --set replicaCount=${{ inputs.replicas}} --set-string springProfilesActive="${{inputs.spring-profiles}}"
+        
+        if [[ -n "${{ inputs.cmd }}" ]]; then
+          echo "Running custom command: ${{ inputs.cmd }}"
+          eval "${{ inputs.cmd }}"
+        fi
