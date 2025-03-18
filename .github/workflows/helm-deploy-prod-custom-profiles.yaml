@@ -28,7 +28,7 @@ jobs:
         ports:
           - 2375:2375
     container:
-      image: dtzar/helm-kubectl
+      image: harbor.nb.no/cache/dtzar/helm-kubectl
     outputs:
       service-name: ${{ steps.set-file-env.outputs.service-name }}
       prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
