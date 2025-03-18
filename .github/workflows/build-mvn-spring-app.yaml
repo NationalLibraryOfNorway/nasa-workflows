@@ -293,7 +293,7 @@ jobs:
         ports:
           - 2375:2375
     container:
-      image: dtzar/helm-kubectl
+      image: harbor.nb.no/cache/dtzar/helm-kubectl
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
