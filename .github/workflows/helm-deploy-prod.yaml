@@ -28,7 +28,7 @@ jobs:
         ports:
           - 2375:2375
     container:
-      image: dtzar/helm-kubectl
+      image: harbor.nb.no/cache/dtzar/helm-kubectl
     outputs:
       run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
     steps:
