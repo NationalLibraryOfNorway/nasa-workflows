@@ -33,7 +33,7 @@ jobs:
     runs-on: self-hosted-linux
     services:
       docker:
-        image: docker:dind
+        image: harbor.nb.no/cache/docker:dind
         options: --privileged
         ports:
           - 2375:2375
@@ -128,7 +128,7 @@ jobs:
     runs-on: self-hosted-linux
     services:
       docker:
-        image: docker:dind
+        image: harbor.nb.no/cache/docker:dind
         options: --privileged
         ports:
           - 2375:2375
@@ -293,12 +293,12 @@ jobs:
     runs-on: self-hosted-linux
     services:
       docker:
-        image: docker:dind
+        image: harbor.nb.no/cache/docker:dind
         options: --privileged
         ports:
           - 2375:2375
     container:
-      image: dtzar/helm-kubectl
+      image: harbor.nb.no/cache/dtzar/helm-kubectl
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
@@ -337,7 +337,7 @@ jobs:
     runs-on: self-hosted-linux
     services:
       docker:
-        image: docker:dind
+        image: harbor.nb.no/cache/docker:dind
         options: --privileged
         ports:
           - 2375:2375
