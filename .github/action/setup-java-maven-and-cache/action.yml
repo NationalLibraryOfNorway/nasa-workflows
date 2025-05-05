@@ -55,10 +55,10 @@ runs:
     - name: Cache
       uses: tespkg/actions-cache@v1
       with:
-        endpoint: ${{ env.S3_NB_HOST}}
-        accessKey: ${{ env.S3_NB_ACCESS_KEY }}
-        secretKey: ${{ env.S3_NB_SECRET_KEY }}
-        bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+        endpoint: ${{ secrets.S3_NB_CACHE_HOST}}
+        accessKey: ${{ secrets.S3_NB_CACHE_ACCESS_KEY }}
+        secretKey: ${{ secrets.S3_NB_CACHE_SECRET_KEY }}
+        bucket: ${{ secrets.S3_NB_CACHE_BUCKET }}
         use-fallback: true
         path: |
           ~/.m2/repository
