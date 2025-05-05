@@ -183,7 +183,11 @@ jobs:
           artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
           proxy-host-nb: ${{ env.PROXY_HOST_NB }}
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
-          java-version: '21'
+          java-version: ${{ inputs.java-version }}
+          cache-endpoint: ${{ env.S3_NB_HOST }}
+          cache-accessKey: ${{ env.S3_NB_ACCESS_KEY }}
+          cache-secretKey: ${{ env.S3_NB_SECRET_KEY }}
+          cache-bucket: ${{ env.S3_NB_CACHE_BUCKET }}
 
       - name: Generate build tag
         id: generate-build-tag
