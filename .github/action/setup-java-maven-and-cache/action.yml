@@ -24,6 +24,18 @@ inputs:
     description: 'Maven version to use'
     required: false
     default: '3.9.9'
+  cache-endpoint:
+    description: 'S3 Cache endpoint'
+    required: true
+  cache-accessKey:
+    description: 'S3 Cache access key'
+    required: true
+  cache-secretKey:
+    description: 'S3 Cache secret key'
+    required: true
+  cache-bucket:
+    description: 'S3 Cache bucket'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -55,10 +67,10 @@ runs:
     - name: Cache
       uses: tespkg/actions-cache@v1
       with:
-        endpoint: ${{ secrets.S3_NB_CACHE_HOST}}
-        accessKey: ${{ secrets.S3_NB_CACHE_ACCESS_KEY }}
-        secretKey: ${{ secrets.S3_NB_CACHE_SECRET_KEY }}
-        bucket: ${{ secrets.S3_NB_CACHE_BUCKET }}
+        endpoint: ${{ inputs.cache-endpoint}}
+        accessKey: ${{ inputs.cache-accessKey }}
+        secretKey: ${{ inputs.cache-secretKey }}
+        bucket: ${{ inputs.cache-bucket }}
         use-fallback: true
         path: |
           ~/.m2/repository

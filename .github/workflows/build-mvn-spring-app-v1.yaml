@@ -72,6 +72,11 @@ jobs:
           proxy-host-nb: ${{ env.PROXY_HOST_NB }}
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
           java-version: '21'
+          cache-endpoint: ${{ env.S3_NB_HOST }}
+          cache-access-key: ${{ env.S3_NB_ACCESS_KEY }}
+          cache-secret-key: ${{ env.S3_NB_SECRET_KEY }}
+          cache-bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+
 
       - name: Maven test
         run: |
