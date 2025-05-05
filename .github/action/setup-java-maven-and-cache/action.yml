@@ -16,14 +16,6 @@ inputs:
   proxy-port-nb:
     description: 'Proxy port for NB'
     required: true
-  java-version:
-    description: 'Java SDK version to use'
-    required: false
-    default: '21'
-  maven-version:
-    description: 'Maven version to use'
-    required: false
-    default: '3.9.9'
   cache-endpoint:
     description: 'S3 Cache endpoint'
     required: true
@@ -36,6 +28,14 @@ inputs:
   cache-bucket:
     description: 'S3 Cache bucket'
     required: true
+  java-version:
+    description: 'Java SDK version to use'
+    required: false
+    default: '21'
+  maven-version:
+    description: 'Maven version to use'
+    required: false
+    default: '3.9.9'
 runs:
   using: "composite"
   steps:
@@ -55,15 +55,18 @@ runs:
                 { "id": "nb-proxy", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "*.nb.no|docker|localhost|172.*|127.*|[::1]"}
               ]'
         output_file: 'settings.xml'
+
     - name: Set up JDK-${{ inputs.java-version }} with cache
       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # ratchet:actions/setup-java@v3
       with:
         java-version: ${{ inputs.java-version }}
         distribution: 'temurin'
+
     - name: Set up Maven
       uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1
       with:
         maven-version: ${{ inputs.maven-version }}
+
     - name: Cache
       uses: tespkg/actions-cache@v1
       with:
