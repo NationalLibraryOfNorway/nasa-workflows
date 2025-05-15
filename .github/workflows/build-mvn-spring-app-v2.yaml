@@ -228,7 +228,7 @@ jobs:
         if: ${{ env.DTRACK_PROJECT_ID && env.DTRACK_PROJECT_ID != '' }}
         uses: DependencyTrack/gh-upload-sbom@v3
         with:
-          serverHostname: 'https://dependencytrack.nb.no'
+          serverHostname: 'dependencytrack.nb.no'
           apiKey: ${{ env.DEPENDENCYTRACK_API_KEY }}
           project: ${{ env.DTRACK_PROJECT_ID }}
           bomfilename: 'target/bom.json'
