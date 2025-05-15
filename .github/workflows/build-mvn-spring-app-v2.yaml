@@ -230,7 +230,7 @@ jobs:
         with:
           serverHostname: 'https://dependencytrack.nb.no'
           apiKey: ${{ env.DEPENDENCYTRACK_API_KEY }}
-          project: 'your-project-uuid'
+          project: ${{ env.DTRACK_PROJECT_ID }}
           bomfilename: 'target/bom.json'
 
       # TODO: Uncomment when Dependency Track is ready
