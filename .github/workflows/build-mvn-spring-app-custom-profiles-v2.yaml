@@ -1,4 +1,4 @@
-name: Build mvn Spring app
+name: Build mvn Spring app Custom Profiles
 
 env:
   MAVEN_OPTS: "-Dhttps.proxyHost=158.39.103.138 -Dhttps.proxyPort=3128 -Dhttp.proxyHost=158.39.103.138 -Dhttp.proxyPort=3128 -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no -Duser.timezone=Europe/Oslo"
@@ -74,8 +74,8 @@ jobs:
           echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
-
-      - name: Setup
+          
+            - name: Setup
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/setup-java-maven-and-cache@main
         with:
           artifactory-host: ${{ env.ARTIFACTORY_NB }}
@@ -121,15 +121,15 @@ jobs:
         options: --privileged
         ports:
           - 2375:2375
-    container:
-      image: ${{ inputs.maven-image }}
-      options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
       service-name: ${{ steps.set-file-env.outputs.service-name }}
       dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
       prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
+      dev-spring-profiles: ${{ steps.set-file-env.outputs.dev-spring-profiles }}
+      e2e-spring-profiles: ${{ steps.set-file-env.outputs.e2e-spring-profiles }}
+      prod-spring-profiles: ${{ steps.set-file-env.outputs.prod-spring-profiles }}
       deploy-e2e: ${{ steps.set-file-env.outputs.deploy-e2e }}
       run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
     env:
@@ -164,6 +164,8 @@ jobs:
         run: |
           echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
           echo "dev-replicas=${{ env.DEV_REPLICAS }}" >> $GITHUB_OUTPUT
+          echo "dev-spring-profiles=${{ env.DEV_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
+          echo "e2e-spring-profiles=${{ env.E2E_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
           echo "deploy-e2e=${{ env.DEPLOY_E2E }}" >> $GITHUB_OUTPUT
           echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
 
@@ -200,23 +202,14 @@ jobs:
           java-distribution: ${{ inputs.java-distribution }}
           maven-version: ${{ inputs.maven-version }}
 
-      - name: Generate build tag
-        id: generate-build-tag
-        run: |
-          export MAVEN_VERSION=`mvn -s settings.xml --batch-mode --no-transfer-progress -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep SNAPSHOT |  grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
-          export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
-          echo "Setting Build tag $BUILD_TAG"
-          echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
-          echo "BUILD_TAG=$(echo $BUILD_TAG)" >> $GITHUB_ENV
-
       # maven build
       - name: Set maven artifact version
         run: |
           mvn -s settings.xml --batch-mode --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
           mvn -s settings.xml --batch-mode --no-transfer-progress versions:commit
 
-      - name: Build with Maven #
-        run: mvn -s settings.xml  --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
+      - name: Build with Maven
+        run: mvn -s settings.xml --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
 
       - name: Publish CycloneDX SBOM
         if: ${{ env.DTRACK_PROJECT_ID && env.DTRACK_PROJECT_ID != '' }}
@@ -279,17 +272,18 @@ jobs:
     runs-on: self-hosted-linux
     services:
       docker:
-        image: docker:dind
+        image: harbor.nb.no/cache/docker:dind
         options: --privileged
         ports:
           - 2375:2375
     container:
-      image: dtzar/helm-kubectl
+      image: harbor.nb.no/cache/dtzar/helm-kubectl
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
       SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
       DEV_REPLICAS: ${{ needs.build-publish-app.outputs.dev-replicas }}
+      DEV_SPRING_PROFILES: ${{ needs.build-publish-app.outputs.dev-spring-profiles }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -305,7 +299,7 @@ jobs:
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
         with:
           release-version: ${{ env.BUILD_TAG }}
-          spring-profiles: 'docker\,dev\,auaudev'
+          spring-profiles: ${{ env.DEV_SPRING_PROFILES }}
           service-name: ${{ env.SERVICE_NAME }}
           k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_STAGE_SERVER }}
@@ -322,16 +316,17 @@ jobs:
     runs-on: self-hosted-linux
     services:
       docker:
-        image: docker:dind
+        image: harbor.nb.no/cache/docker:dind
         options: --privileged
         ports:
           - 2375:2375
     container:
-      image: dtzar/helm-kubectl
+      image: harbor.nb.no/cache/dtzar/helm-kubectl
       options: --user root
     env:
       BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
       SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
+      E2E_SPRING_PROFILES: ${{ needs.build-publish-app.outputs.e2e-spring-profiles }}
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -347,7 +342,7 @@ jobs:
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
         with:
           release-version: ${{ env.BUILD_TAG }}
-          spring-profiles: 'dockere2e\,e2e\,auaue2e'
+          spring-profiles: ${{ env.E2E_SPRING_PROFILES }}
           service-name: ${{ env.SERVICE_NAME }}
           k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
           k8s-server: ${{ env.K8S_STAGE_SERVER }}
