@@ -121,9 +121,6 @@ jobs:
         options: --privileged
         ports:
           - 2375:2375
-    container:
-      image: ${{ inputs.maven-image }}
-      options: --user root
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
@@ -215,7 +212,7 @@ jobs:
           mvn -s settings.xml --batch-mode --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
           mvn -s settings.xml --batch-mode --no-transfer-progress versions:commit
 
-      - name: Build with Maven #
+      - name: Build with Maven
         run: mvn -s settings.xml  --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
 
       - name: Publish CycloneDX SBOM
