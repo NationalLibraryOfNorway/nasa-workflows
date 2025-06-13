@@ -75,7 +75,7 @@ jobs:
           echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
           echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
           
-            - name: Setup
+      - name: Setup
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/setup-java-maven-and-cache@main
         with:
           artifactory-host: ${{ env.ARTIFACTORY_NB }}
