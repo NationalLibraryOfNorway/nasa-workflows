@@ -303,6 +303,11 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+        with:
+          expand: 'true'
+
       - name: Update manifest files
         if: ${{ env.ARGOCD_DEPLOY == 'true' }}
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/manifest-update@main
