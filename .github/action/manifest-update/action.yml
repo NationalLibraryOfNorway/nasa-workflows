@@ -49,7 +49,7 @@ runs:
         shell: bash
         run: |
           echo "Updating manifest e2e for service ${{ env.SERVICE_NAME }} docker-service-name: ${{ inputs.service-docker-name }} with tag: ${{ inputs.release-version }} "
-          cd k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.stage.nb.no/e2e
+          cd nbno-k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.stage.nb.no/e2e
           kustomize edit set image ${{ env.DOCKER_IMAGE }}:${{ inputs.release-version }}
           cd ../../../../
           
@@ -57,7 +57,7 @@ runs:
         shell: bash
         run: |
           echo "Updating manifest nbno for service ${{ env.SERVICE_NAME }} docker-service-name: ${{ inputs.service-docker-name }} with tag: ${{ inputs.release-version }} "
-          cd k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.stage.nb.no/nbno
+          cd nbno-k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.stage.nb.no/nbno
           kustomize edit set image ${{ env.DOCKER_IMAGE }}:${{ inputs.release-version }}
           cd ../../../../
 
