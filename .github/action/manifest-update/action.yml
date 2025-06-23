@@ -1,0 +1,73 @@
+name: 'Manifest Update nbno-k8s-manifest'
+description: 'Update the manifest files with the latest version and profiles'
+inputs:
+  release-version:
+    description: 'Release version'
+    required: true
+  manifest-app-id:
+    description: 'GitHub App ID for NASA Manifest'
+    required: true
+  manifest-privatekey:
+    description: 'GitHub App Private Key for NASA Manifest'
+    required: true
+  manifest-installation-id:
+    description: 'GitHub App Installation ID for NASA Manifest'
+    required: true
+
+runs:
+    using: "composite"
+    steps:
+
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ inputs.manifest-app-id }}
+          private_key: ${{ inputs.manifest-privatekey }}
+          installation_id: ${{ inputs.manifest-installation-id }}
+
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+        with:
+          expand: 'true'
+
+      - name: Checkout other repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'NationalLibraryOfNorway/nbno-k8s-manifest'
+          token: ${{ steps.generate_token.outputs.token }}
+          path: './nbno-k8s-manifest'
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Update manifest e2e files
+        if: ${{ env.DEPLOY_E2E == 'true' }}
+        shell: bash
+        run: |
+          echo "Updating manifest e2e for service ${{ env.SERVICE_NAME }} docker-service-name: ${{ inputs.service-docker-name }} with tag: ${{ inputs.release-version }} "
+          cd k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.stage.nb.no/e2e
+          kustomize edit set image ${{ env.DOCKER_IMAGE }}:${{ inputs.release-version }}
+          cd ../../../../
+          
+      - name: Update manifest nbno files
+        shell: bash
+        run: |
+          echo "Updating manifest nbno for service ${{ env.SERVICE_NAME }} docker-service-name: ${{ inputs.service-docker-name }} with tag: ${{ inputs.release-version }} "
+          cd k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.stage.nb.no/nbno
+          kustomize edit set image ${{ env.DOCKER_IMAGE }}:${{ inputs.release-version }}
+          cd ../../../../
+
+      - name: Commit and push changes
+        shell: bash
+        run: |
+          echo "Committing and pushing changes to nbno-k8s-manifest"
+          cd nbno-k8s-manifest
+          git config user.name "@nasa-bot"
+          git config user.email "nasa-bot@users.noreply.github.com"
+          git commit -am "feat: Update deployment image tag to ${{ inputs.release-version }} for service ${{ env.SERVICE_NAME }} [skip ci]"
+          git push
+          
