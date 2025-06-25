@@ -132,6 +132,7 @@ jobs:
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
       service-name: ${{ steps.set-file-env.outputs.service-name }}
       argocd-deploy: ${{ steps.set-file-env.outputs.argocd-deploy }}
+      helm-deploy: ${{ steps.set-file-env.outputs.helm-deploy }}
       dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
       prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
       dev-spring-profiles: ${{ steps.set-file-env.outputs.dev-spring-profiles }}
@@ -177,6 +178,7 @@ jobs:
         run: |
           echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
           echo "argocd-deploy=${{ env.ARGOCD_DEPLOY }}" >> $GITHUB_OUTPUT
+          echo "helm-deploy=${{ env.HELM_DEPLOY }}" >> $GITHUB_OUTPUT
           echo "dev-replicas=${{ env.DEV_REPLICAS }}" >> $GITHUB_OUTPUT
           echo "dev-spring-profiles=${{ env.DEV_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
           echo "e2e-spring-profiles=${{ env.E2E_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
@@ -314,7 +316,6 @@ jobs:
           expand: 'true'
 
       - name: Update manifest files
-        if: ${{ env.ARGOCD_DEPLOY == 'true' }}
         uses: NationalLibraryOfNorway/nasa-workflows/.github/action/manifest-update@main
         with:
           manifest-app-id: ${{ env.MANIFEST_APP_ID }}
@@ -325,7 +326,7 @@ jobs:
   deploy-stage:
     name: Deploy to stage
     needs: [build-publish-app, bump-version-tag]
-    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' }}
+    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' }}
     runs-on: self-hosted-linux
     services:
       docker:
@@ -369,7 +370,7 @@ jobs:
   deploy-e2e:
     name: Deploy to e2e
     needs: [build-publish-app, bump-version-tag]
-    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
+    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
     runs-on: self-hosted-linux
     services:
       docker:
