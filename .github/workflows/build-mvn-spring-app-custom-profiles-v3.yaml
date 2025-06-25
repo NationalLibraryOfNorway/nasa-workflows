@@ -131,6 +131,7 @@ jobs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
       service-name: ${{ steps.set-file-env.outputs.service-name }}
+      argocd-deploy: ${{ steps.set-file-env.outputs.argocd-deploy }}
       dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
       prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
       dev-spring-profiles: ${{ steps.set-file-env.outputs.dev-spring-profiles }}
@@ -175,6 +176,7 @@ jobs:
         id: set-file-env
         run: |
           echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
+          echo "argocd-deploy=${{ env.ARGOCD_DEPLOY }}" >> $GITHUB_OUTPUT
           echo "dev-replicas=${{ env.DEV_REPLICAS }}" >> $GITHUB_OUTPUT
           echo "dev-spring-profiles=${{ env.DEV_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
           echo "e2e-spring-profiles=${{ env.E2E_SPRING_PROFILES }}" >> $GITHUB_OUTPUT
@@ -290,7 +292,7 @@ jobs:
   update-manifest:
     name: Update manifest files
     needs: [build-publish-app, bump-version-tag]
-    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && env.ARGOCD_DEPLOY == 'true' }}
+    if: ${{ needs.build-publish-app.outputs.docker-build == 'true'  && needs.build-publish-app.outputs.argocd-deploy == 'true' }}
     runs-on: self-hosted-linux
     steps:
       - name: Import secrets from vault
