@@ -72,7 +72,7 @@ runs:
       - name: Commit and push changes
         shell: bash
         run: |
-          echo "Committing and pushing changes to nbno-k8s-manifest"
+          echo "Committing and pushing release changes to nbno-k8s-manifest"
           cd nbno-k8s-manifest
           git config user.name "@nasa-bot"
           git config user.email "nasa-bot@users.noreply.github.com"

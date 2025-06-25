@@ -1,0 +1,417 @@
+name: Build mvn Spring app
+
+env:
+  MAVEN_OPTS: "-Dhttps.proxyHost=158.39.103.138 -Dhttps.proxyPort=3128 -Dhttp.proxyHost=158.39.103.138 -Dhttp.proxyPort=3128 -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no -Duser.timezone=Europe/Oslo"
+
+on:
+  workflow_call:
+    secrets:
+      VAULT_URL:
+        required: true
+      VAULT_SECRET_PATH:
+        required: true
+      VAULT_ROLE:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
+      NASA_NBNO_API_TEST_PAT:
+        required: true
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: '21'
+      java-distribution:
+        required: false
+        type: string
+        default: 'temurin'
+      maven-version:
+        required: false
+        type: string
+        default: '3.9.9'
+
+    outputs:
+      build-tag:
+        description: "Build tag"
+        value: ${{ jobs.build-app.outputs.release-version }}
+
+jobs:
+  test:
+    name: Build and Run test
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: harbor.nb.no/cache/docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    env:
+      TZ: "Europe/Oslo"
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Cleanup Docker config
+        run: |
+          rm -f ~/.docker/config.json || true
+          mkdir -p ~/.docker
+          echo '{}' > ~/.docker/config.json
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
+      - name: set env
+        run: |
+          echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
+          echo "PROXY_NB=${{ secrets.PROXY_NB }}" >> $GITHUB_ENV
+
+      - name: Setup
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/setup-java-maven-and-cache@main
+        with:
+          artifactory-host: ${{ env.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
+          proxy-host-nb: ${{ env.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ env.PROXY_PORT_NB }}
+          cache-endpoint: ${{ env.S3_NB_HOST }}
+          cache-accessKey: ${{ env.S3_NB_ACCESS_KEY }}
+          cache-secretKey: ${{ env.S3_NB_SECRET_KEY }}
+          cache-bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+          java-version: ${{ inputs.java-version }}
+          java-distribution: ${{ inputs.java-distribution }}
+          maven-version: ${{ inputs.maven-version }}
+
+      - name: Maven test
+        run: |
+          mvn $MAVEN_OPTS -s settings.xml --batch-mode --no-transfer-progress -Dcyclonedx.skip=true clean verify
+
+      - name: Fix dubious ownership in git-repo
+        shell: bash
+        run: |
+          git config --global --add safe.directory '*'
+
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v2
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork)
+        with:
+          name: JUnit Tests
+          path: ./**/TEST-*.xml
+          reporter: java-junit
+          fail-on-error: true
+          fail-on-empty: false
+
+  build-publish-app:
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    name: Build and publish artifacts
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: harbor.nb.no/cache/docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    outputs:
+      build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
+      docker-build: ${{ steps.docker-build.outputs.docker-build }}
+      service-name: ${{ steps.set-file-env.outputs.service-name }}
+      argocd-deploy: ${{ steps.set-file-env.outputs.argocd-deploy }}
+      helm-deploy: ${{ steps.set-file-env.outputs.helm-deploy }}
+      dev-replicas: ${{ steps.set-file-env.outputs.dev-replicas }}
+      prod-replicas: ${{ steps.set-file-env.outputs.prod-replicas }}
+      deploy-e2e: ${{ steps.set-file-env.outputs.deploy-e2e }}
+      run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
+    env:
+      TZ: "Europe/Oslo"
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+
+      - name: Cleanup Docker config
+        run: |
+          rm -f ~/.docker/config.json || true
+          mkdir -p ~/.docker
+          echo '{}' > ~/.docker/config.json
+
+      # prebuild
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+        with:
+          if-file-not-found: 'ignore'
+          expand: 'true'
+
+      - name: Set env to ouputs
+        id: set-file-env
+        run: |
+          echo "service-name=${{ env.SERVICE_NAME }}" >> $GITHUB_OUTPUT
+          echo "argocd-deploy=${{ env.ARGOCD_DEPLOY }}" >> $GITHUB_OUTPUT
+          echo "helm-deploy=${{ env.HELM_DEPLOY }}" >> $GITHUB_OUTPUT
+          echo "dev-replicas=${{ env.DEV_REPLICAS }}" >> $GITHUB_OUTPUT
+          echo "deploy-e2e=${{ env.DEPLOY_E2E }}" >> $GITHUB_OUTPUT
+          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
+
+      - name: set env
+        run: |
+          echo "PROXY_NB=${{ env.PROXY_NB }}" >> $GITHUB_ENV
+          echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_REPO_URL=${{ env.ARTIFACTORY_REPO_URL }}" >> $GITHUB_ENV
+          echo "HELM_REPO_URL=${{ env.HELM_REPO_URL }}" >> $GITHUB_ENV
+          echo "DOCKER_REGISTRY_NB=${{ env.DOCKER_REGISTRY_NB }}" >> $GITHUB_ENV
+          echo "DOCKER_HARBOR_USER=${{ env.DOCKER_HARBOR_USER }}" >> $GITHUB_ENV
+          echo "DOCKER_HARBOR_PASS=${{ env.DOCKER_HARBOR_PASS }}" >> $GITHUB_ENV
+          echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
+          echo "DEPENDENCYTRACK_BASE_URL=${{ env.DEPENDENCYTRACK_BASE_URL }}" >> $GITHUB_ENV
+          echo "DEPENDENCYTRACK_API_KEY=${{ env.DEPENDENCYTRACK_API_KEY }}" >> $GITHUB_ENV
+
+      - name: Create m2-settings
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/setup-java-maven-and-cache@main
+        with:
+          artifactory-host: ${{ env.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
+          proxy-host-nb: ${{ env.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ env.PROXY_PORT_NB }}
+          cache-endpoint: ${{ env.S3_NB_HOST }}
+          cache-accessKey: ${{ env.S3_NB_ACCESS_KEY }}
+          cache-secretKey: ${{ env.S3_NB_SECRET_KEY }}
+          cache-bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+          java-version: ${{ inputs.java-version }}
+          java-distribution: ${{ inputs.java-distribution }}
+          maven-version: ${{ inputs.maven-version }}
+
+      - name: Generate build tag
+        id: generate-build-tag
+        run: |
+          export MAVEN_VERSION=`mvn -s settings.xml --batch-mode --no-transfer-progress -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec | grep SNAPSHOT |  grep -o '[0-9]*\.[0-9]*\.[0-9]*'`
+          export BUILD_TAG=${MAVEN_VERSION}-${{ github.run_number }}
+          echo "Setting Build tag $BUILD_TAG"
+          echo "build-tag=$(echo $BUILD_TAG)" >> $GITHUB_OUTPUT
+          echo "BUILD_TAG=$(echo $BUILD_TAG)" >> $GITHUB_ENV
+
+      # maven build
+      - name: Set maven artifact version
+        run: |
+          mvn -s settings.xml --batch-mode --no-transfer-progress versions:set -DnewVersion="${{ steps.generate-build-tag.outputs.build-tag }}"
+          mvn -s settings.xml --batch-mode --no-transfer-progress versions:commit
+
+      - name: Build with Maven
+        run: mvn -s settings.xml  --no-transfer-progress --batch-mode --update-snapshots -Dmaven.test.skip=true -Ddependency-check.skip=true package
+
+      - name: Publish CycloneDX SBOM
+        if: ${{ env.DTRACK_PROJECT_ID && env.DTRACK_PROJECT_ID != '' }}
+        run: |
+          mvn -s settings.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true cyclonedx:makeAggregateBom
+
+      - name: Upload to DependencyTrack
+        if: ${{ env.DTRACK_PROJECT_ID && env.DTRACK_PROJECT_ID != '' }}
+        uses: DependencyTrack/gh-upload-sbom@v3
+        with:
+          serverHostname: 'dependencytrack.nb.no'
+          apiKey: ${{ env.DEPENDENCYTRACK_API_KEY }}
+          project: ${{ env.DTRACK_PROJECT_ID }}
+          bomfilename: 'target/bom.json'
+
+      # publish artifacts
+      - name: Publish artifacts
+        run: |
+          mvn -s settings.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
+
+      # docker build
+      - name: Build docker image
+        id: docker-build
+        run: | # 
+          export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
+          if [ -n "$DOCKER_POM" ]; then
+            mvn -s settings.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true
+            export DOCKER_BUILD=true
+            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
+            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
+          else
+            export DOCKER_BUILD=false
+            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
+            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
+          fi
+          
+  bump-version-tag:
+    name: Bump version and push tag
+    needs: [build-publish-app]
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: ${{ env.BUILD_TAG }}
+
+  update-manifest:
+    name: Update manifest files
+    needs: [ build-publish-app, bump-version-tag ]
+    if: ${{ needs.build-publish-app.outputs.docker-build == 'true'  && needs.build-publish-app.outputs.argocd-deploy == 'true' }}
+    runs-on: self-hosted-linux
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load .env file
+        uses: aarcangeli/load-dotenv@v1
+        with:
+          expand: 'true'
+
+      - name: Update manifest files
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/manifest-update@main
+        with:
+          manifest-app-id: ${{ env.MANIFEST_APP_ID }}
+          manifest-privatekey: ${{ env.MANIFEST_PRIVATEKEY }}
+          manifest-installation-id: ${{ env.MANIFEST_INSTALLATION_ID }}
+          release-version: ${{ needs.build-publish-app.outputs.build-tag }}
+
+  deploy-stage:
+    name: Deploy to stage
+    needs: [build-publish-app, bump-version-tag]
+    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' }}
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+      options: --user root
+    env:
+      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+      SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
+      DEV_REPLICAS: ${{ needs.build-publish-app.outputs.dev-replicas }}
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Deploy stage
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+        with:
+          release-version: ${{ env.BUILD_TAG }}
+          spring-profiles: 'docker\,dev\,auaudev'
+          service-name: ${{ env.SERVICE_NAME }}
+          k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
+          k8s-server: ${{ env.K8S_STAGE_SERVER }}
+          replicas: ${{ env.DEV_REPLICAS }}
+          k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
+          k8s-context: nbno
+          k8s-user: ${{ env.K8S_USER }}
+
+
+  deploy-e2e:
+    name: Deploy to e2e
+    needs: [build-publish-app, bump-version-tag]
+    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    container:
+      image: dtzar/helm-kubectl
+      options: --user root
+    env:
+      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
+      SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Deploy e2e
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
+        with:
+          release-version: ${{ env.BUILD_TAG }}
+          spring-profiles: 'dockere2e\,e2e\,auaue2e'
+          service-name: ${{ env.SERVICE_NAME }}
+          k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
+          k8s-server: ${{ env.K8S_STAGE_SERVER }}
+          replicas: 1
+          k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
+          k8s-context: e2e
+          k8s-user: ${{ env.K8S_USER }}
+
+
+
+  run-nbno-api-test:
+    name: Trigger Run nbno-api-test
+    needs: [build-publish-app, deploy-stage, bump-version-tag]
+    if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run nbno-api-test
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.NASA_NBNO_API_TEST_PAT }}
+          repository: NationalLibraryOfNorway/nbno-api-test
+          event-type: dispatch-event-stage
