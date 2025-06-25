@@ -79,7 +79,7 @@ jobs:
       - name: Update manifest k8s.local.nb.no files
         shell: bash
         run: |
-          echo "Updating manifest nbno for service ${{ env.SERVICE_NAME }} docker-service-name: ${{ env.DOCKER_IMAGE }} with tag: ${{ env.RELEASE_TAG }} "
+          echo "Updating manifest nbno for service ${{ env.SERVICE_NAME }} docker-image: ${{ env.DOCKER_IMAGE }} with tag: ${{ env.RELEASE_TAG }} "
           cd nbno-k8s-manifest/${{ env.SERVICE_NAME }}/overlays/k8s.nb.no
           kustomize edit set image ${{ env.DOCKER_IMAGE }}:${{ env.RELEASE_TAG }}
           cd ../../../..
