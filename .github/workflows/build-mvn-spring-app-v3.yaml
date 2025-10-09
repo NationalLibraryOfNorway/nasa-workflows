@@ -319,6 +319,7 @@ jobs:
 
   deploy-stage:
     name: Deploy to stage
+    environment: stage
     needs: [build-publish-app, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' }}
     runs-on: self-hosted-linux
