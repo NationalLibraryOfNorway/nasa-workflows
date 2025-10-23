@@ -76,7 +76,7 @@ jobs:
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Update manifest k8s.local.nb.no files
+      - name: Update manifest k8s.nb.no files
         shell: bash
         run: |
           echo "Updating manifest nbno for service ${{ env.SERVICE_NAME }} docker-image: ${{ env.DOCKER_IMAGE }} with tag: ${{ env.RELEASE_TAG }} "
