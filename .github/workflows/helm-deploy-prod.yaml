@@ -21,6 +21,7 @@ jobs:
   deploy-prod:
     name: Deploy to prod
     runs-on: self-hosted-linux
+    environment: prod
     services:
       docker:
         image: harbor.nb.no/cache/docker:dind
