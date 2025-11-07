@@ -50,7 +50,7 @@ jobs:
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
 
       - name: set env
@@ -84,7 +84,7 @@ jobs:
           proxy-host-nb: ${{ env.PROXY_HOST_NB }}
           proxy-port-nb: ${{ env.PROXY_PORT_NB }}
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
