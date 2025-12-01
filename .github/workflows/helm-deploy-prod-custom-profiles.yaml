@@ -46,7 +46,7 @@ jobs:
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
