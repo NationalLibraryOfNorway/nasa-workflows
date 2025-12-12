@@ -69,7 +69,7 @@ jobs:
 
       - name: Cache ~/.m2/repository
         id: cache-m2-repository
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
