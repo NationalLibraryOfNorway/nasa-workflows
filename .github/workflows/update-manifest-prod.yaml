@@ -44,7 +44,7 @@ jobs:
           installation_id: ${{ env.MANIFEST_INSTALLATION_ID }}
 
       - name: Checkout current repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
 
@@ -67,7 +67,7 @@ jobs:
         run: echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Checkout other repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: 'NationalLibraryOfNorway/nbno-k8s-manifest'
           token: ${{ steps.generate_token.outputs.token }}
@@ -95,7 +95,7 @@ jobs:
           git push
 
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
         with:
           fetch-depth: 0
