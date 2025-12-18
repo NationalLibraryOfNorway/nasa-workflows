@@ -378,11 +378,30 @@ jobs:
     name: Trigger Run nbno-api-test
     needs: [build-publish-app, deploy-stage, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-linux
     steps:
-      - name: Run nbno-api-test
-        uses: peter-evans/repository-dispatch@v4
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        id: vault
         with:
-          token: ${{ secrets.NASA_NBNO_API_TEST_PAT }}
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+
+      - name: Generate token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ env.GITHUB_APP_NBNO_API_TEST_APPID }}
+          private-key: ${{ env.GITHUB_APP_NBNO_API_TEST_PRIVATEKEY }}
+          owner: NationalLibraryOfNorway
+          repositories: nbno-api-test
+
+      - name: Run nbno-api-test
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
           repository: NationalLibraryOfNorway/nbno-api-test
           event-type: dispatch-event-stage
