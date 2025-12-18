@@ -413,7 +413,7 @@ jobs:
     name: Trigger Run nbno-api-test
     needs: [build-publish-app, deploy-stage, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-linux
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
