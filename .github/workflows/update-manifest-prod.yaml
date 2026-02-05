@@ -13,8 +13,6 @@ on:
         required: true
       VAULT_SECRET_ID:
         required: true
-      NASA_NBNO_API_TEST_PAT:
-        required: true
 
 
 jobs:
