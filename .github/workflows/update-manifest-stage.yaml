@@ -2,6 +2,10 @@ name: Update manifest to stage
 
 on:
   workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
     secrets:
       VAULT_URL:
         required: true
@@ -36,8 +40,7 @@ jobs:
 
       - name: Get latest tag
         run: |
-          git fetch --tags
-          echo "LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
+          echo "LATEST_TAG=${{ inputs.tag_name }}" >> $GITHUB_ENV
 
       - name: Load .env file
         uses: aarcangeli/load-dotenv@v1
