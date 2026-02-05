@@ -18,8 +18,9 @@ on:
 
 
 jobs:
-  deploy-prod:
+  update-manifest:
     name: Update manifest to prod
+    environment: prod
     runs-on: self-hosted-linux
     outputs:
       run-api-tests: ${{ steps.set-file-env.outputs.run-api-tests }}
@@ -91,45 +92,8 @@ jobs:
           cd nbno-k8s-manifest
           git config user.name "@nasa-bot"
           git config user.email "nasa-bot@users.noreply.github.com"
-          git commit -am "feat: Update prod deployment image tag to ${{ env.RELEASE_TAG }} for service ${{ env.SERVICE_NAME }} [skip ci]"
+          git commit -am "chore: Update prod deployment image tag to ${{ env.RELEASE_TAG }} for service ${{ env.SERVICE_NAME }} [skip ci]"
           git push
-
-      - name: Checkout code
-        uses: actions/checkout@v5
-        # checkout gir shallow copy - fetch-depth: 0 vil tilgjengeliggjøre tags
-        with:
-          fetch-depth: 0
-
-      - name: Load .env file
-        uses: aarcangeli/load-dotenv@v1
-        with:
-          expand: 'true'
-
-      - name: Set env to ouputs
-        id: set-file-env
-        run: |
-          echo "run-api-tests=${{ env.RUN_API_TESTS }}" >> $GITHUB_OUTPUT
-
-      - name: Fix dubious ownership in git-repo
-        shell: bash
-        run: |
-          git config --global --add safe.directory '*'
-
-      - name: Set Release Tag as Environment Variable
-        run: echo "RELEASE_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
-
-      - name: Deploy prod
-        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
-        with:
-          release-version: ${{ env.RELEASE_TAG }}
-          spring-profiles: 'docker\,prod\,auauprod'
-          service-name: ${{ env.SERVICE_NAME }}
-          k8s-certificate-authority-data: ${{ env.K8S_PROD_CERTIFICATE_AUTHORITY_DATA }}
-          k8s-server: ${{ env.K8S_PROD_SERVER }}
-          replicas: ${{ env.PROD_REPLICAS }}
-          k8s-user-token: ${{ env.K8S_PROD_USER_TOKEN }}
-          k8s-context: nbno
-          k8s-user: ${{ env.K8S_USER }}
 
   run-nbno-api-test:
     name: Trigger Run nbno-api-test
