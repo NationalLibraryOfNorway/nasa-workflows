@@ -1,4 +1,4 @@
-name: Update maifest to prod
+name: Update manifest to prod
 
 on:
   workflow_call:
