@@ -97,10 +97,15 @@ jobs:
 
   run-nbno-api-test:
     name: Trigger Run nbno-api-test
-    needs: [ deploy-prod ]
-    if: ${{ needs.deploy-prod.outputs.run-api-tests == 'true' }}ue' }}
+    needs: [ update-manifest ]
+    if: ${{ needs.deploy-prod.outputs.run-api-tests == 'true' }}
     runs-on: self-hosted-linux
     steps:
+      - name: wait
+        description: 'Wait for prod deployment to stabilize before running API tests'
+        uses: jakejarvis/wait-action@v1
+        with:
+          time: '300' # wait for 300 seconds (5 minutes)
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
         id: vault
