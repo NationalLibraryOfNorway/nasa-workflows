@@ -104,7 +104,7 @@ jobs:
 
       - name: Generate token
         id: generate-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ env.GITHUB_APP_NBNO_API_TEST_APPID }}
           private-key: ${{ env.GITHUB_APP_NBNO_API_TEST_PRIVATEKEY }}
