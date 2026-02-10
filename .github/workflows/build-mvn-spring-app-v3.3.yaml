@@ -16,10 +16,8 @@ on:
         required: true
       VAULT_SECRET_ID:
         required: true
-      NASA_NBNO_API_TEST_PAT:
-        required: true
       NASA_GITHUB_SLACK_WEBHOOK_URL:
-        required: false
+        required: true
     inputs:
       java-version:
         required: false
