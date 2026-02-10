@@ -5,7 +5,7 @@ on:
     secrets:
       GITLEAKS_LICENSE:
         required: true
-      SLACK_WEBHOOK_URL:
+      NASA_GITHUB_SLACK_WEBHOOK_URL:
         required: false
 jobs:
   Gitleaks:
