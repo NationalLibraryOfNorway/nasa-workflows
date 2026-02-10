@@ -5,16 +5,50 @@ on:
     secrets:
       GITLEAKS_LICENSE:
         required: true
+      SLACK_WEBHOOK_URL:
+        required: false
 jobs:
   Gitleaks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
       - name: Scan with Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Only required for nal accounts.
+
+      - name: Send Slack notification on failure
+        if: failure() && secrets.NASA_GITHUB_SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.NASA_GITHUB_SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "⚠️ Gitleaks fant secrets i repositoryet!"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*⚠️ Gitleaks Security Alert*\n\nGitleaks har funnet potensielle secrets i koden."
+              - type: "section"
+                fields:
+                  - type: "mrkdwn"
+                    text: "*Repository:*\n${{ github.repository }}"
+                  - type: "mrkdwn"
+                    text: "*Branch:*\n${{ github.ref_name }}"
+                  - type: "mrkdwn"
+                    text: "*Commit:*\n<${{ github.event.head_commit.url }}|${{ github.sha }}>"
+                  - type: "mrkdwn"
+                    text: "*Actor:*\n${{ github.actor }}"
+              - type: "actions"
+                elements:
+                  - type: "button"
+                    text:
+                      type: "plain_text"
+                      text: "Se workflow kjøring"
+                    url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
