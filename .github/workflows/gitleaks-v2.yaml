@@ -23,7 +23,7 @@ jobs:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Only required for nal accounts.
 
       - name: Send Slack notification on failure
-        if: failure() && secrets.NASA_GITHUB_SLACK_WEBHOOK_URL != ''
+        if: failure()
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.NASA_GITHUB_SLACK_WEBHOOK_URL }}
