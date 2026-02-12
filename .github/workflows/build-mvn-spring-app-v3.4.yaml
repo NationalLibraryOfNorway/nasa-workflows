@@ -126,12 +126,12 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Build and publish artifacts
     runs-on: self-hosted-linux
-    services:
-      docker:
-        image: harbor.nb.no/cache/docker:dind
-        options: --privileged
-        ports:
-          - 2375:2375
+#    services:
+#      docker:
+#        image: harbor.nb.no/cache/docker:dind
+#        options: --privileged
+#        ports:
+#          - 2375:2375
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
