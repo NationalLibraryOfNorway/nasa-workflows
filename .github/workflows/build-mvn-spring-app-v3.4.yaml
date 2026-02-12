@@ -262,7 +262,7 @@ jobs:
         run: | # 
           export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
           if [ -n "$DOCKER_POM" ]; then
-            mvn -s settings.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dspring-boot.build-image.cleanCache=true -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true -Dspring-boot.build-image.pullPolicy=ALWAYS -Dspring-boot.build-image.verboseLogging=true -X
+            mvn -s settings.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dspring-boot.build-image.cleanCache=true -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true -Dspring-boot.build-image.pullPolicy=ALWAYS -Dspring-boot.build-image.verboseLogging=true -Dorg.slf4j.simpleLogger.log.org.apache.http.wire=WARN -Dorg.slf4j.simpleLogger.log.org.apache.http.headers=WARN -X
             export DOCKER_BUILD=true
             echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
             echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
