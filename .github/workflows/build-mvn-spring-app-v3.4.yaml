@@ -44,7 +44,7 @@ on:
 jobs:
   test:
     name: Build and Run test
-    runs-on: self-hosted-linux-test
+    runs-on: self-hosted-linux
     services:
       docker:
         image: harbor.nb.no/cache/docker:dind
@@ -125,13 +125,13 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Build and publish artifacts
-    runs-on: self-hosted-linux-test
-#    services:
-#      docker:
-#        image: harbor.nb.no/cache/docker:dind
-#        options: --privileged
-#        ports:
-#          - 2375:2375
+    runs-on: self-hosted-linux
+    services:
+      docker:
+        image: harbor.nb.no/cache/docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
     outputs:
       build-tag: ${{ steps.generate-build-tag.outputs.build-tag }}
       docker-build: ${{ steps.docker-build.outputs.docker-build }}
@@ -246,8 +246,8 @@ jobs:
         if: ${{ env.DTRACK_PROJECT_ID && env.DTRACK_PROJECT_ID != '' }}
         uses: DependencyTrack/gh-upload-sbom@v3
         with:
-          serverHostname: 'dependencytrack.nb.no'
-          apiKey: ${{ env.DEPENDENCYTRACK_API_KEY }}
+          serverhostname: 'dependencytrack.nb.no'
+          apikey: ${{ env.DEPENDENCYTRACK_API_KEY }}
           project: ${{ env.DTRACK_PROJECT_ID }}
           bomfilename: 'target/bom.json'
 
@@ -257,16 +257,34 @@ jobs:
           mvn -s settings.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
       # docker build
-      - name: Build docker image
+#      - name: Build docker image
+#        id: docker-build
+#        run: | #
+#          export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
+#          if [ -n "$DOCKER_POM" ]; then
+#            mvn -s settings.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dspring-boot.build-image.cleanCache=true -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true -Dspring-boot.build-image.pullPolicy=ALWAYS -Dspring-boot.build-image.verboseLogging=true -e
+#            export DOCKER_BUILD=true
+#            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
+#            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
+#          else
+#            export DOCKER_BUILD=false
+#            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
+#            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
+#          fi
+
+      # docker build - using Jib
+      - name: Build docker image with Jib
         id: docker-build
-        run: | # 
-          export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-          if [ -n "$DOCKER_POM" ]; then
-            mvn -s settings.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dspring-boot.build-image.cleanCache=true -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true -Dspring-boot.build-image.pullPolicy=ALWAYS -Dspring-boot.build-image.verboseLogging=true -e
+        run: |
+          export JIB_POM=$(find . -name "pom.xml" -type f -exec grep -l "jib-maven-plugin" {} \; | head -n 1)
+          if [ -n "$JIB_POM" ]; then
+            echo "Building and pushing Docker image using Jib"
+            mvn -s settings.xml --no-transfer-progress -f $JIB_POM clean package jib:build -Dmaven.test.skip=true -Ddependency-check.skip=true
             export DOCKER_BUILD=true
             echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
             echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
           else
+            echo "No Jib configuration found"
             export DOCKER_BUILD=false
             echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
             echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
@@ -295,7 +313,7 @@ jobs:
     name: Update manifest files
     needs: [ build-publish-app, bump-version-tag ]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true'  && needs.build-publish-app.outputs.argocd-deploy == 'true' }}
-    runs-on: self-hosted-linux-test
+    runs-on: self-hosted-linux
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -327,9 +345,9 @@ jobs:
     name: Deploy to stage
     needs: [build-publish-app, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' }}
-    runs-on: self-hosted-linux-test
+    runs-on: self-hosted-linux
     services:
-      docker:
+     docker:
         image: docker:dind
         options: --privileged
         ports:
@@ -370,7 +388,7 @@ jobs:
     name: Deploy to e2e
     needs: [build-publish-app, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
-    runs-on: self-hosted-linux-test
+    runs-on: self-hosted-linux
     services:
       docker:
         image: docker:dind
@@ -413,7 +431,7 @@ jobs:
     name: Trigger Run nbno-api-test
     needs: [build-publish-app, deploy-stage, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
-    runs-on: self-hosted-linux-test
+    runs-on: self-hosted-linux
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
