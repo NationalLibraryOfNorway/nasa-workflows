@@ -44,7 +44,7 @@ on:
 jobs:
   test:
     name: Build and Run test
-    runs-on: self-hosted-linux
+    runs-on: self-hosted-linux-test
     services:
       docker:
         image: harbor.nb.no/cache/docker:dind
@@ -125,7 +125,7 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Build and publish artifacts
-    runs-on: self-hosted-linux
+    runs-on: self-hosted-linux-test
     services:
       docker:
         image: harbor.nb.no/cache/docker:dind
@@ -295,7 +295,7 @@ jobs:
     name: Update manifest files
     needs: [ build-publish-app, bump-version-tag ]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true'  && needs.build-publish-app.outputs.argocd-deploy == 'true' }}
-    runs-on: self-hosted-linux
+    runs-on: self-hosted-linux-test
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
@@ -327,7 +327,7 @@ jobs:
     name: Deploy to stage
     needs: [build-publish-app, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' }}
-    runs-on: self-hosted-linux
+    runs-on: self-hosted-linux-test
     services:
       docker:
         image: docker:dind
@@ -370,7 +370,7 @@ jobs:
     name: Deploy to e2e
     needs: [build-publish-app, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
-    runs-on: self-hosted-linux
+    runs-on: self-hosted-linux-test
     services:
       docker:
         image: docker:dind
@@ -413,7 +413,7 @@ jobs:
     name: Trigger Run nbno-api-test
     needs: [build-publish-app, deploy-stage, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
-    runs-on: self-hosted-linux
+    runs-on: self-hosted-linux-test
     steps:
       - name: Import secrets from vault
         uses: hashicorp/vault-action@v3
