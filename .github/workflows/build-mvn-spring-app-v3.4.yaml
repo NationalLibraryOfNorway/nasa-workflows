@@ -256,22 +256,6 @@ jobs:
         run: |
           mvn -s settings.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Ddependency-check.skip=true deploy
 
-      # docker build
-#      - name: Build docker image
-#        id: docker-build
-#        run: | #
-#          export DOCKER_POM=`grep -ril "publishRegistry" --include pom.xml`
-#          if [ -n "$DOCKER_POM" ]; then
-#            mvn -s settings.xml --no-transfer-progress -f $DOCKER_POM spring-boot:build-image -Dspring-boot.build-image.cleanCache=true -Dmaven.test.skip=true -Ddependency-check.skip=true -Dspring-boot.build-image.publish=true -Dspring-boot.build-image.pullPolicy=ALWAYS -Dspring-boot.build-image.verboseLogging=true -e
-#            export DOCKER_BUILD=true
-#            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
-#            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
-#          else
-#            export DOCKER_BUILD=false
-#            echo "docker-build=$(echo $DOCKER_BUILD)" >> $GITHUB_OUTPUT
-#            echo "DOCKER_BUILD=$(echo $DOCKER_BUILD)" >> $GITHUB_ENV
-#          fi
-
       # docker build - using Jib
       - name: Build docker image with Jib
         id: docker-build
@@ -341,95 +325,9 @@ jobs:
           manifest-installation-id: ${{ env.MANIFEST_INSTALLATION_ID }}
           release-version: ${{ needs.build-publish-app.outputs.build-tag }}
 
-  deploy-stage:
-    name: Deploy to stage
-    needs: [build-publish-app, bump-version-tag]
-    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' }}
-    runs-on: self-hosted-linux
-    services:
-     docker:
-        image: docker:dind
-        options: --privileged
-        ports:
-          - 2375:2375
-    container:
-      image: dtzar/helm-kubectl
-      options: --user root
-    env:
-      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
-      SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
-      DEV_REPLICAS: ${{ needs.build-publish-app.outputs.dev-replicas }}
-    steps:
-      - name: Import secrets from vault
-        uses: hashicorp/vault-action@v3
-        id: vault
-        with:
-          url: ${{ secrets.VAULT_URL }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
-
-      - name: Deploy stage
-        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
-        with:
-          release-version: ${{ env.BUILD_TAG }}
-          spring-profiles: 'docker\,dev\,auaudev'
-          service-name: ${{ env.SERVICE_NAME }}
-          k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
-          k8s-server: ${{ env.K8S_STAGE_SERVER }}
-          replicas: ${{ env.DEV_REPLICAS }}
-          k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
-          k8s-context: nbno
-          k8s-user: ${{ env.K8S_USER }}
-
-
-  deploy-e2e:
-    name: Deploy to e2e
-    needs: [build-publish-app, bump-version-tag]
-    if: ${{ needs.build-publish-app.outputs.docker-build == 'true' && needs.build-publish-app.outputs.helm-deploy == 'true' && needs.build-publish-app.outputs.deploy-e2e == 'true' }}
-    runs-on: self-hosted-linux
-    services:
-      docker:
-        image: docker:dind
-        options: --privileged
-        ports:
-          - 2375:2375
-    container:
-      image: dtzar/helm-kubectl
-      options: --user root
-    env:
-      BUILD_TAG: ${{ needs.build-publish-app.outputs.build-tag }}
-      SERVICE_NAME: ${{ needs.build-publish-app.outputs.service-name }}
-    steps:
-      - name: Import secrets from vault
-        uses: hashicorp/vault-action@v3
-        id: vault
-        with:
-          url: ${{ secrets.VAULT_URL }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: ${{ secrets.VAULT_SECRET_PATH}} *
-
-      - name: Deploy e2e
-        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/helm-deploy@main
-        with:
-          release-version: ${{ env.BUILD_TAG }}
-          spring-profiles: 'dockere2e\,e2e\,auaue2e'
-          service-name: ${{ env.SERVICE_NAME }}
-          k8s-certificate-authority-data: ${{ env.K8S_STAGE_CERTIFICATE_AUTHORITY_DATA }}
-          k8s-server: ${{ env.K8S_STAGE_SERVER }}
-          replicas: 1
-          k8s-user-token: ${{ env.K8S_STAGE_USER_TOKEN }}
-          k8s-context: e2e
-          k8s-user: ${{ env.K8S_USER }}
-
-
-
   run-nbno-api-test:
     name: Trigger Run nbno-api-test
-    needs: [build-publish-app, deploy-stage, bump-version-tag]
+    needs: [build-publish-app, update-manifest, bump-version-tag]
     if: ${{ needs.build-publish-app.outputs.run-api-tests == 'true' }}
     runs-on: self-hosted-linux
     steps:
@@ -462,7 +360,7 @@ jobs:
   notify-on-failure:
     name: Send Slack notification on failure
     runs-on: ubuntu-latest
-    needs: [test, build-publish-app, bump-version-tag, update-manifest, deploy-stage, deploy-e2e, run-nbno-api-test]
+    needs: [test, build-publish-app, bump-version-tag, update-manifest, run-nbno-api-test]
     if: failure()
     steps:
       - name: Send Slack notification
