@@ -63,6 +63,7 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+          tlsSkipVerify: true
 
       - name: Cleanup Docker config
         run: |
@@ -154,6 +155,7 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+          tlsSkipVerify: true
 
 
       - name: Cleanup Docker config
@@ -308,6 +310,7 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+          tlsSkipVerify: true
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -340,6 +343,7 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: ${{ secrets.VAULT_SECRET_PATH}} *
+          tlsSkipVerify: true
 
       - name: Generate token
         id: generate-token
