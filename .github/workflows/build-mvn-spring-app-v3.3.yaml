@@ -359,7 +359,7 @@ jobs:
   notify-on-failure:
     name: Send Slack notification on failure
     runs-on: ubuntu-latest
-    needs: [test, build-publish-app, bump-version-tag, update-manifest, deploy-stage, deploy-e2e, run-nbno-api-test]
+    needs: [test, build-publish-app, bump-version-tag, update-manifest, run-nbno-api-test]
     if: failure()
     steps:
       - name: Send Slack notification
