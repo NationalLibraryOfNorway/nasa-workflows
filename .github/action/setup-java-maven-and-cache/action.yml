@@ -1,3 +1,15 @@
+# Composite action: Setup Java, Maven, settings.xml og S3-cache
+#
+# Oppsett av JDK, Maven, Artifactory settings.xml og S3 Maven-cache
+# med optimalisert caching-strategi for bedre ytelse på tvers av runs.
+#
+# Cache-strategi:
+#   - Prosjekt-navn hentes automatisk fra pom.xml (artifactId) eller kan overstyres
+#   - Hver prosjekt får sin egen cache for å unngå bloated shared caches
+#   - Cache-nøkkel inkluderer: prosjekt, OS, Maven-versjon, Java-versjon, pom.xml hash
+#   - Restore-keys gir fallback til samme prosjekt med andre pom.xml versjoner
+#   - use-fallback: false for å unngå unødvendig cache-upload
+
 name: 'Setup Java and Maven'
 description: 'Setup Java and Maven for pipeline'
 inputs:
@@ -39,10 +51,49 @@ inputs:
   maven-version:
     description: 'Maven version to use'
     required: false
-    default: '3.9.9'
+    default: '3.9.14'
+  project-name:
+    description: 'Project name for cache isolation (auto-detected from pom.xml artifactId, or override manually)'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
+    - name: Extract project name from pom.xml
+      id: extract-project-name
+      shell: bash
+      run: |
+        PROJECT_NAME=""
+        
+        # 1. Prøv å bruke manuelt spesifisert project-name
+        if [ -n "${{ inputs.project-name }}" ]; then
+          PROJECT_NAME="${{ inputs.project-name }}"
+          echo "Using manual project-name: $PROJECT_NAME"
+        
+        # 2. Prøv å hente artifactId fra pom.xml (ekskluder parent-seksjonen)
+        elif [ -f "pom.xml" ]; then
+          # Fjern parent-seksjonen først, deretter hent første artifactId
+          PROJECT_NAME=$(sed '/<parent>/,/<\/parent>/d' pom.xml | grep -m 1 '<artifactId>' | sed 's/.*<artifactId>\(.*\)<\/artifactId>.*/\1/' | tr -d '[:space:]')
+          if [ -n "$PROJECT_NAME" ]; then
+            echo "Extracted from pom.xml: $PROJECT_NAME"
+          fi
+        fi
+        
+        # 3. Prøv repository name
+        if [ -z "$PROJECT_NAME" ] && [ -n "${{ github.event.repository.name }}" ]; then
+          PROJECT_NAME="${{ github.event.repository.name }}"
+          echo "Using repository name: $PROJECT_NAME"
+        fi
+        
+        # 4. Siste fallback - bruk generic navn
+        if [ -z "$PROJECT_NAME" ]; then
+          PROJECT_NAME="maven-project"
+          echo "Using generic fallback: $PROJECT_NAME"
+        fi
+        
+        echo "project-name=$PROJECT_NAME" >> $GITHUB_OUTPUT
+        echo "✓ Cache key prefix: $PROJECT_NAME"
+
     - name: Create maven .m2 settings
       uses: whelk-io/maven-settings-xml-action@9dc09b23833fa9aa7f27b63db287951856f3433d
       with:
@@ -60,7 +111,8 @@ runs:
               ]'
         output_file: 'settings.xml'
 
-    - uses: azure/setup-helm@v4.3.0
+    - name: Set up Helm
+      uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.3.0
 
     - name: Set up JDK-${{ inputs.java-version }} with cache
       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # ratchet:actions/setup-java@v3
@@ -69,23 +121,20 @@ runs:
         distribution: ${{ inputs.java-distribution }}
 
     - name: Set up Maven
-      uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1
+      uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
       with:
         maven-version: ${{ inputs.maven-version }}
 
-    - name: Cache
-      uses: tespkg/actions-cache@v1
+    - name: Restore Maven cache
+      uses: tespkg/actions-cache@570a8ae32f67c95bcaca3f8cc88702cd318291e9 # v1
       with:
-        endpoint: ${{ inputs.cache-endpoint}}
+        endpoint: ${{ inputs.cache-endpoint }}
         accessKey: ${{ inputs.cache-accessKey }}
         secretKey: ${{ inputs.cache-secretKey }}
         bucket: ${{ inputs.cache-bucket }}
-        use-fallback: true
-        path: |
-          ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ inputs.maven-version }}-${{ github.ref_name }}-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
+        use-fallback: false
+        path: ~/.m2/repository
+        key: ${{ steps.extract-project-name.outputs.project-name }}-${{ runner.os }}-maven-${{ inputs.maven-version }}-java-${{ inputs.java-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-            ${{ runner.os }}-maven-${{ inputs.maven-version }}-${{ github.ref_name }}-${{ hashFiles('pom.xml', '**/pom.xml') }}-
-            ${{ runner.os }}-maven-${{ inputs.maven-version }}-${{ github.ref_name }}-
-            ${{ runner.os }}-maven-${{ inputs.maven-version }}-
-            ${{ runner.os }}-maven-
+          ${{ steps.extract-project-name.outputs.project-name }}-${{ runner.os }}-maven-${{ inputs.maven-version }}-java-${{ inputs.java-version }}-
+          ${{ steps.extract-project-name.outputs.project-name }}-${{ runner.os }}-maven-${{ inputs.maven-version }}-
