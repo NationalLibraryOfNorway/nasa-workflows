@@ -327,6 +327,7 @@ jobs:
           manifest-privatekey: ${{ env.MANIFEST_PRIVATEKEY }}
           manifest-installation-id: ${{ env.MANIFEST_INSTALLATION_ID }}
           release-version: ${{ needs.build-publish-app.outputs.build-tag }}
+          k8s-namespace: ${{ env.K8S_NAMESPACE || 'nbno' }}
 
   run-nbno-api-test:
     name: Trigger Run nbno-api-test
