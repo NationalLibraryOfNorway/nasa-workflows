@@ -44,28 +44,25 @@ jobs:
       refs: ${{ steps.refs.outputs.refs }}
       prod-same: ${{ steps.refs.outputs.prod-same }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-
       # Siste release er det som kjører i prod. Skannes kun hvis den peker på en annen commit enn default-branchen.
       - name: Resolve refs
         id: refs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BRANCH: ${{ github.ref_name }}
-        run: |
-          TAG=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
-          REFS="[\"$DEFAULT_BRANCH\"]"
-          SAME=false
-          if [ -n "$TAG" ] && [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
-            REFS="[\"$DEFAULT_BRANCH\",\"$TAG\"]"
-          elif [ -n "$TAG" ]; then
-            SAME=true
-          fi
-          echo "refs=$REFS" >> "$GITHUB_OUTPUT"
-          echo "prod-same=$SAME" >> "$GITHUB_OUTPUT"
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const def = context.ref.replace('refs/heads/', '');
+            let tag = null;
+            try {
+              tag = (await github.rest.repos.getLatestRelease({owner, repo})).data.tag_name;
+            } catch (e) {
+              if (e.status !== 404) throw e; // ingen release er greit, andre feil skal stoppe jobben
+            }
+            const sha = async ref => (await github.rest.repos.getCommit({owner, repo, ref})).data.sha;
+            const same = !!tag && (await sha(tag)) === (await sha(def));
+            core.info(`default=${def} tag=${tag} same=${same}`);
+            core.setOutput('refs', JSON.stringify(tag && !same ? [def, tag] : [def]));
+            core.setOutput('prod-same', String(same));
 
   cve-scan:
     name: CVE scan (${{ matrix.ref == github.ref_name && matrix.ref || format('prod-release {0}', matrix.ref) }})
