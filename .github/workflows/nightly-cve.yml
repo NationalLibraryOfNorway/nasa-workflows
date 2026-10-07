@@ -1,0 +1,149 @@
+name: Nightly CVE scan
+
+env:
+  MAVEN_OPTS: "-Dhttps.proxyHost=158.39.103.138 -Dhttps.proxyPort=3128 -Dhttp.proxyHost=158.39.103.138 -Dhttp.proxyPort=3128 -Dhttp.nonProxyHosts=localhost|172.*|127.0.0.1|docker|*.nb.no -Duser.timezone=Europe/Oslo"
+
+on:
+  workflow_call:
+    secrets:
+      VAULT_URL:
+        required: true
+      VAULT_SECRET_PATH:
+        required: true
+      VAULT_ROLE:
+        required: false
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
+      NASA_GITHUB_SLACK_WEBHOOK_URL:
+        required: true
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: '21'
+      java-distribution:
+        required: false
+        type: string
+        default: 'temurin'
+      maven-version:
+        required: false
+        type: string
+        default: '3.9.9'
+      maven-args:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  resolve-refs:
+    name: Resolve refs to scan
+    runs-on: self-hosted-linux
+    outputs:
+      refs: ${{ steps.refs.outputs.refs }}
+      prod-same: ${{ steps.refs.outputs.prod-same }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      # Siste release er det som kjører i prod. Skannes kun hvis den peker på en annen commit enn default-branchen.
+      - name: Resolve refs
+        id: refs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.ref_name }}
+        run: |
+          TAG=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          REFS="[\"$DEFAULT_BRANCH\"]"
+          SAME=false
+          if [ -n "$TAG" ] && [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+            REFS="[\"$DEFAULT_BRANCH\",\"$TAG\"]"
+          elif [ -n "$TAG" ]; then
+            SAME=true
+          fi
+          echo "refs=$REFS" >> "$GITHUB_OUTPUT"
+          echo "prod-same=$SAME" >> "$GITHUB_OUTPUT"
+
+  cve-scan:
+    name: CVE scan (${{ matrix.ref == github.ref_name && matrix.ref || format('prod-release {0}', matrix.ref) }})
+    needs: resolve-refs
+    runs-on: self-hosted-linux
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ fromJSON(needs.resolve-refs.outputs.refs) }}
+    env:
+      TZ: "Europe/Oslo"
+    steps:
+      - name: Import secrets from vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ secrets.VAULT_URL }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: ${{ secrets.VAULT_SECRET_PATH }} *
+          tlsSkipVerify: true
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+
+      - name: Set env
+        run: |
+          echo "NVD_REPO=${{ env.NVD_REPO }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_USER=${{ env.ARTIFACTORY_USER }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_PASS=${{ env.ARTIFACTORY_PASS }}" >> $GITHUB_ENV
+          echo "ARTIFACTORY_NB=${{ env.ARTIFACTORY_REPO_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_HOST_NB=${{ env.PROXY_NB_HOST }}" >> $GITHUB_ENV
+          echo "PROXY_PORT_NB=${{ env.PROXY_NB_PORT }}" >> $GITHUB_ENV
+
+      - name: Setup
+        uses: NationalLibraryOfNorway/nasa-workflows/.github/action/setup-java-maven-and-cache@main
+        with:
+          artifactory-host: ${{ env.ARTIFACTORY_NB }}
+          artifactory-user-nasa: ${{ env.ARTIFACTORY_USER }}
+          artifactory-pass-nasa: ${{ env.ARTIFACTORY_PASS }}
+          proxy-host-nb: ${{ env.PROXY_HOST_NB }}
+          proxy-port-nb: ${{ env.PROXY_PORT_NB }}
+          cache-endpoint: ${{ env.S3_NB_HOST }}
+          cache-accessKey: ${{ env.S3_NB_ACCESS_KEY }}
+          cache-secretKey: ${{ env.S3_NB_SECRET_KEY }}
+          cache-bucket: ${{ env.S3_NB_CACHE_BUCKET }}
+          java-version: ${{ inputs.java-version }}
+          java-distribution: ${{ inputs.java-distribution }}
+          maven-version: ${{ inputs.maven-version }}
+
+      # Feiler ved CVSS over failBuildOnCVSS i pom.xml
+      - name: Dependency-check
+        run: mvn $MAVEN_OPTS -s settings.xml --batch-mode --no-transfer-progress dependency-check:check ${{ inputs.maven-args }}
+
+      - name: Send Slack notification
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.NASA_GITHUB_SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "🛡️ Nattlig CVE-sjekk feilet for ${{ matrix.ref == github.ref_name && (needs.resolve-refs.outputs.prod-same == 'true' && format('{0} (= prod-release)', matrix.ref) || matrix.ref) || format('PROD-release {0}', matrix.ref) }} i ${{ github.repository }}!"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*🛡️ Nattlig CVE-sjekk feilet*\n\nSårbarhet over CVSS-terskelen funnet (eller sjekken feilet) for *${{ matrix.ref == github.ref_name && (needs.resolve-refs.outputs.prod-same == 'true' && format('{0} (= prod-release)', matrix.ref) || matrix.ref) || format('PROD-release {0}', matrix.ref) }}*"
+              - type: "section"
+                fields:
+                  - type: "mrkdwn"
+                    text: "*Repository:*\n${{ github.repository }}"
+                  - type: "mrkdwn"
+                    text: "*Ref:*\n${{ matrix.ref }}"
+              - type: "actions"
+                elements:
+                  - type: "button"
+                    text:
+                      type: "plain_text"
+                      text: "Se workflow kjøring"
+                    url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
