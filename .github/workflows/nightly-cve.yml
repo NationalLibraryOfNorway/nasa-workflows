@@ -119,7 +119,7 @@ jobs:
 
       # Feiler ved CVSS over failBuildOnCVSS i pom.xml
       - name: Dependency-check
-        run: mvn $MAVEN_OPTS -s settings.xml --batch-mode --no-transfer-progress dependency-check:check ${{ inputs.maven-args }}
+        run: mvn $MAVEN_OPTS -s settings.xml --batch-mode --no-transfer-progress -Dmaven.test.skip=true -Dcyclonedx.skip=true package dependency-check:check ${{ inputs.maven-args }}
 
       - name: Send Slack notification
         if: failure()
