@@ -24,7 +24,14 @@ runs:
       with:
         servers: '[
           { "id": "snapshots", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" },
-          { "id": "releases", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" }
+          { "id": "releases", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" },
+          { "id": "nb-artifactory", "username": "${{ inputs.artifactory-user-nasa }}", "password": "${{ inputs.artifactory-pass-nasa }}" }
+        ]'
+        # Maven Central struper NBs delte egress-IP (HTTP 429). Mirror tvinger all
+        # oppslag (også repoer/pluginRepositories fra prosjektets pom) via Artifactory.
+        # "snapshots" unntas så snapshot-oppslag fortsatt går mot libs-snapshot-local.
+        mirrors: '[
+          { "id": "nb-artifactory", "mirrorOf": "*,!snapshots", "url": "https://${{inputs.artifactory-host}}/artifactory/repo" }
         ]'
         repositories: '[
           { "id": "nbcache", "url": "https://${{inputs.artifactory-host}}/artifactory/libs-release" },
@@ -35,6 +42,19 @@ runs:
           { "id": "nb-proxy", "active": "true", "protocol": "http", "host": "${{ inputs.proxy-host-nb }}", "port": "${{ inputs.proxy-port-nb }}", "nonProxyHosts": "*.nb.no|docker|localhost|172.*|127.*|[::1]"}
         ]'
         output_file: 'settings.xml'
+    # ./mvnw henter Maven-distribusjonen fra Central som standard — gå via Artifactory.
+    - name: Route Maven wrapper through Artifactory
+      shell: bash
+      env:
+        ARTIFACTORY_HOST: ${{ inputs.artifactory-host }}
+        ARTIFACTORY_USER: ${{ inputs.artifactory-user-nasa }}
+        ARTIFACTORY_PASS: ${{ inputs.artifactory-pass-nasa }}
+      run: |
+        {
+          echo "MVNW_REPOURL=https://${ARTIFACTORY_HOST}/artifactory/repo"
+          echo "MVNW_USERNAME=${ARTIFACTORY_USER}"
+          echo "MVNW_PASSWORD=${ARTIFACTORY_PASS}"
+        } >> "$GITHUB_ENV"
     - name: Download toolchain file
       shell: bash
       run: |
